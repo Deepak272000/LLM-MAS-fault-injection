@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.1 (Python 3.12.12 on linux)" generated="2026-02-06T10:55:11.018123" rpa="false" schemaversion="5">
+<suite id="s1" name="Online Boutique Tests" source="/home/eiapuser/epaurca/microservices-demo-main/testing/online_boutique_tests.robot">
+<test id="s1-t1" name="Frontend Home Page Should Be Accessible" line="11">
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2026-02-06T10:55:11.366432" level="INFO">Opening browser 'headlesschrome' to base url 'http://localhost:8080'.</msg>
+<msg time="2026-02-06T10:55:24.085259" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="selenium-screenshot-1.png"&gt;&lt;img src="selenium-screenshot-1.png" width="800px"&gt;&lt;/a&gt;</msg>
+<msg time="2026-02-06T10:55:24.085520" level="FAIL">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x555f314cfd0a &lt;unknown&gt;
+#1 0x555f30edf682 &lt;unknown&gt;
+#2 0x555f30ed640a &lt;unknown&gt;
+#3 0x555f30ec70c1 &lt;unknown&gt;
+#4 0x555f30ec8ebc &lt;unknown&gt;
+#5 0x555f30ec75b9 &lt;unknown&gt;
+#6 0x555f30ec6ca5 &lt;unknown&gt;
+#7 0x555f30ec6856 &lt;unknown&gt;
+#8 0x555f30ec437b &lt;unknown&gt;
+#9 0x555f30ec4bc0 &lt;unknown&gt;
+#10 0x555f30ee305d &lt;unknown&gt;
+#11 0x555f30f7dcbb &lt;unknown&gt;
+#12 0x555f30f7d04b &lt;unknown&gt;
+#13 0x555f30f2688f &lt;unknown&gt;
+#14 0x555f30f27651 &lt;unknown&gt;
+#15 0x555f31494159 &lt;unknown&gt;
+#16 0x555f31497061 &lt;unknown&gt;
+#17 0x555f31480919 &lt;unknown&gt;
+#18 0x555f31497c2e &lt;unknown&gt;
+#19 0x555f31466c90 &lt;unknown&gt;
+#20 0x555f314bc358 &lt;unknown&gt;
+#21 0x555f314bc528 &lt;unknown&gt;
+#22 0x555f314ce353 &lt;unknown&gt;
+#23 0x7fc28cce3ac3 &lt;unknown&gt;
+</msg>
+<arg>${URL}</arg>
+<arg>${BROWSER}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="FAIL" start="2026-02-06T10:55:11.366055" elapsed="12.721565">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x555f314cfd0a &lt;unknown&gt;
+#1 0x555f30edf682 &lt;unknown&gt;
+#2 0x555f30ed640a &lt;unknown&gt;
+#3 0x555f30ec70c1 &lt;unknown&gt;
+#4 0x555f30ec8ebc &lt;unknown&gt;
+#5 0x555f30ec75b9 &lt;unknown&gt;
+#6 0x555f30ec6ca5 &lt;unknown&gt;
+#7 0x555f30ec6856 &lt;unknown&gt;
+#8 0x555f30ec437b &lt;unknown&gt;
+#9 0x555f30ec4bc0 &lt;unknown&gt;
+#10 0x555f30ee305d &lt;unknown&gt;
+#11 0x555f30f7dcbb &lt;unknown&gt;
+#12 0x555f30f7d04b &lt;unknown&gt;
+#13 0x555f30f2688f &lt;unknown&gt;
+#14 0x555f30f27651 &lt;unknown&gt;
+#15 0x555f31494159 &lt;unknown&gt;
+#16 0x555f31497061 &lt;unknown&gt;
+#17 0x555f31480919 &lt;unknown&gt;
+#18 0x555f31497c2e &lt;unknown&gt;
+#19 0x555f31466c90 &lt;unknown&gt;
+#20 0x555f314bc358 &lt;unknown&gt;
+#21 0x555f314bc528 &lt;unknown&gt;
+#22 0x555f314ce353 &lt;unknown&gt;
+#23 0x7fc28cce3ac3 &lt;unknown&gt;
+</status>
+</kw>
+<kw name="Page Should Contain" owner="SeleniumLibrary">
+<arg>Online Boutique</arg>
+<doc>Verifies that current page contains ``text``.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:24.088056" elapsed="0.000065"/>
+</kw>
+<kw name="Page Should Contain Element" owner="SeleniumLibrary">
+<arg>class:product-card</arg>
+<doc>Verifies that element ``locator`` is found on the current page.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:24.088360" elapsed="0.000048"/>
+</kw>
+<kw name="Close Browser" owner="SeleniumLibrary" type="TEARDOWN">
+<doc>Closes the current browser.</doc>
+<status status="PASS" start="2026-02-06T10:55:24.088864" elapsed="0.070055"/>
+</kw>
+<doc>Verify the frontend is up and displays the product list.</doc>
+<status status="FAIL" start="2026-02-06T10:55:11.364790" elapsed="12.794344">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x555f314cfd0a &lt;unknown&gt;
+#1 0x555f30edf682 &lt;unknown&gt;
+#2 0x555f30ed640a &lt;unknown&gt;
+#3 0x555f30ec70c1 &lt;unknown&gt;
+#4 0x555f30ec8ebc &lt;unknown&gt;
+#5 0x555f30ec75b9 &lt;unknown&gt;
+#6 0x555f30ec6ca5 &lt;unknown&gt;
+#7 0x555f30ec6856 &lt;unknown&gt;
+#8 0x555f30ec437b &lt;unknown&gt;
+#9 0x555f30ec4bc0 &lt;unknown&gt;
+#10 0x555f30ee305d &lt;unknown&gt;
+#11 0x555f30f7dcbb &lt;unknown&gt;
+#12 0x555f30f7d04b &lt;unknown&gt;
+#13 0x555f30f2688f &lt;unknown&gt;
+#14 0x555f30f27651 &lt;unknown&gt;
+#15 0x555f31494159 &lt;unknown&gt;
+#16 0x555f31497061 &lt;unknown&gt;
+#17 0x555f31480919 &lt;unknown&gt;
+#18 0x555f31497c2e &lt;unknown&gt;
+#19 0x555f31466c90 &lt;unknown&gt;
+#20 0x555f314bc358 &lt;unknown&gt;
+#21 0x555f314bc528 &lt;unknown&gt;
+#22 0x555f314ce353 &lt;unknown&gt;
+#23 0x7fc28cce3ac3 &lt;unknown&gt;
+</status>
+</test>
+<test id="s1-t2" name="Product Details Page Load" line="18">
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2026-02-06T10:55:24.161099" level="INFO">Opening browser 'headlesschrome' to base url 'http://localhost:8080'.</msg>
+<msg time="2026-02-06T10:55:25.076895" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="selenium-screenshot-2.png"&gt;&lt;img src="selenium-screenshot-2.png" width="800px"&gt;&lt;/a&gt;</msg>
+<msg time="2026-02-06T10:55:25.077138" level="FAIL">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x560212e4dd0a &lt;unknown&gt;
+#1 0x56021285d682 &lt;unknown&gt;
+#2 0x56021285440a &lt;unknown&gt;
+#3 0x5602128450c1 &lt;unknown&gt;
+#4 0x560212846ebc &lt;unknown&gt;
+#5 0x5602128455b9 &lt;unknown&gt;
+#6 0x560212844ca5 &lt;unknown&gt;
+#7 0x560212844856 &lt;unknown&gt;
+#8 0x56021284237b &lt;unknown&gt;
+#9 0x560212842bc0 &lt;unknown&gt;
+#10 0x56021286105d &lt;unknown&gt;
+#11 0x5602128fbcbb &lt;unknown&gt;
+#12 0x5602128fb04b &lt;unknown&gt;
+#13 0x5602128a488f &lt;unknown&gt;
+#14 0x5602128a5651 &lt;unknown&gt;
+#15 0x560212e12159 &lt;unknown&gt;
+#16 0x560212e15061 &lt;unknown&gt;
+#17 0x560212dfe919 &lt;unknown&gt;
+#18 0x560212e15c2e &lt;unknown&gt;
+#19 0x560212de4c90 &lt;unknown&gt;
+#20 0x560212e3a358 &lt;unknown&gt;
+#21 0x560212e3a528 &lt;unknown&gt;
+#22 0x560212e4c353 &lt;unknown&gt;
+#23 0x7fc7e31a6ac3 &lt;unknown&gt;
+</msg>
+<arg>${URL}</arg>
+<arg>${BROWSER}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="FAIL" start="2026-02-06T10:55:24.160773" elapsed="0.917205">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x560212e4dd0a &lt;unknown&gt;
+#1 0x56021285d682 &lt;unknown&gt;
+#2 0x56021285440a &lt;unknown&gt;
+#3 0x5602128450c1 &lt;unknown&gt;
+#4 0x560212846ebc &lt;unknown&gt;
+#5 0x5602128455b9 &lt;unknown&gt;
+#6 0x560212844ca5 &lt;unknown&gt;
+#7 0x560212844856 &lt;unknown&gt;
+#8 0x56021284237b &lt;unknown&gt;
+#9 0x560212842bc0 &lt;unknown&gt;
+#10 0x56021286105d &lt;unknown&gt;
+#11 0x5602128fbcbb &lt;unknown&gt;
+#12 0x5602128fb04b &lt;unknown&gt;
+#13 0x5602128a488f &lt;unknown&gt;
+#14 0x5602128a5651 &lt;unknown&gt;
+#15 0x560212e12159 &lt;unknown&gt;
+#16 0x560212e15061 &lt;unknown&gt;
+#17 0x560212dfe919 &lt;unknown&gt;
+#18 0x560212e15c2e &lt;unknown&gt;
+#19 0x560212de4c90 &lt;unknown&gt;
+#20 0x560212e3a358 &lt;unknown&gt;
+#21 0x560212e3a528 &lt;unknown&gt;
+#22 0x560212e4c353 &lt;unknown&gt;
+#23 0x7fc7e31a6ac3 &lt;unknown&gt;
+</status>
+</kw>
+<kw name="Click Element" owner="SeleniumLibrary">
+<arg>xpath://div[contains(@class, 'product-card')][1]//a</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:25.078468" elapsed="0.000052"/>
+</kw>
+<kw name="Wait Until Page Contains" owner="SeleniumLibrary">
+<arg>Product Description</arg>
+<doc>Waits until ``text`` appears on the current page.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:25.078831" elapsed="0.000046"/>
+</kw>
+<kw name="Element Should Be Visible" owner="SeleniumLibrary">
+<arg>xpath://button[@type='submit' and contains(text(), 'Add To Cart')]</arg>
+<doc>Verifies that the element identified by ``locator`` is visible.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:25.079135" elapsed="0.000045"/>
+</kw>
+<kw name="Close Browser" owner="SeleniumLibrary" type="TEARDOWN">
+<doc>Closes the current browser.</doc>
+<status status="PASS" start="2026-02-06T10:55:25.079630" elapsed="0.074690"/>
+</kw>
+<doc>Verify clicking a product displays the details page.</doc>
+<status status="FAIL" start="2026-02-06T10:55:24.160228" elapsed="0.994581">WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=145.0.7632.46)
+Stacktrace:
+#0 0x560212e4dd0a &lt;unknown&gt;
+#1 0x56021285d682 &lt;unknown&gt;
+#2 0x56021285440a &lt;unknown&gt;
+#3 0x5602128450c1 &lt;unknown&gt;
+#4 0x560212846ebc &lt;unknown&gt;
+#5 0x5602128455b9 &lt;unknown&gt;
+#6 0x560212844ca5 &lt;unknown&gt;
+#7 0x560212844856 &lt;unknown&gt;
+#8 0x56021284237b &lt;unknown&gt;
+#9 0x560212842bc0 &lt;unknown&gt;
+#10 0x56021286105d &lt;unknown&gt;
+#11 0x5602128fbcbb &lt;unknown&gt;
+#12 0x5602128fb04b &lt;unknown&gt;
+#13 0x5602128a488f &lt;unknown&gt;
+#14 0x5602128a5651 &lt;unknown&gt;
+#15 0x560212e12159 &lt;unknown&gt;
+#16 0x560212e15061 &lt;unknown&gt;
+#17 0x560212dfe919 &lt;unknown&gt;
+#18 0x560212e15c2e &lt;unknown&gt;
+#19 0x560212de4c90 &lt;unknown&gt;
+#20 0x560212e3a358 &lt;unknown&gt;
+#21 0x560212e3a528 &lt;unknown&gt;
+#22 0x560212e4c353 &lt;unknown&gt;
+#23 0x7fc7e31a6ac3 &lt;unknown&gt;
+</status>
+</test>
+<test id="s1-t3" name="Service Health Check (API)" line="26">
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-02-06T10:55:25.159341" level="INFO">Creating Session using : alias=frontend, url=http://localhost:8080, headers={},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>frontend</arg>
+<arg>${URL}</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-02-06T10:55:25.159110" elapsed="0.000481"/>
+</kw>
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-02-06T10:55:25.162116" level="WARN">Retrying (RetryAdapter(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+<msg time="2026-02-06T10:55:25.363253" level="WARN">Retrying (RetryAdapter(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+<msg time="2026-02-06T10:55:25.764793" level="WARN">Retrying (RetryAdapter(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+<msg time="2026-02-06T10:55:25.766105" level="FAIL">ConnectionError: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /_healthz (Caused by NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>frontend</arg>
+<arg>/_healthz</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="FAIL" start="2026-02-06T10:55:25.159847" elapsed="0.986920">ConnectionError: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /_healthz (Caused by NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused"))</status>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${resp.status_code}</arg>
+<arg>200</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="NOT RUN" start="2026-02-06T10:55:26.147132" elapsed="0.000058"/>
+</kw>
+<doc>Ping the frontend health check endpoint.</doc>
+<status status="FAIL" start="2026-02-06T10:55:25.158212" elapsed="0.989278">ConnectionError: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /_healthz (Caused by NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused"))</status>
+</test>
+<doc>Smoke tests for Google Microservices Demo (Online Boutique)</doc>
+<status status="FAIL" start="2026-02-06T10:55:11.019398" elapsed="15.128818"/>
+</suite>
+<statistics>
+<total>
+<stat pass="0" fail="3" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Online Boutique Tests" id="s1" pass="0" fail="3" skip="0">Online Boutique Tests</stat>
+</suite>
+</statistics>
+<errors>
+<msg time="2026-02-06T10:55:25.162116" level="WARN">Retrying (RetryAdapter(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+<msg time="2026-02-06T10:55:25.363253" level="WARN">Retrying (RetryAdapter(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+<msg time="2026-02-06T10:55:25.764793" level="WARN">Retrying (RetryAdapter(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=8080): Failed to establish a new connection: [Errno 111] Connection refused")': /_healthz</msg>
+</errors>
+</robot>

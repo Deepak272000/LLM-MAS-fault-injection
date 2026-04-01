@@ -1,0 +1,163 @@
+name: Robot Framework Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        rfbrowser init
+    
+    - name: Run smoke tests
+      run: |
+        robot --include smoke --outputdir results tests/
+      env:
+        BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8080' }}
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: smoke-test-results
+        path: results/
+        retention-days: 30
+
+  ui-tests:
+    name: UI Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        rfbrowser init
+    
+    - name: Run UI tests
+      run: |
+        robot --variable HEADLESS:True --outputdir results tests/01_ui_tests.robot
+      env:
+        BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8080' }}
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ui-test-results
+        path: results/
+        retention-days: 30
+
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run API tests
+      run: |
+        robot --outputdir results tests/02_api_tests.robot
+      env:
+        BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8080' }}
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: api-test-results
+        path: results/
+        retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        rfbrowser init
+    
+    - name: Run integration tests
+      run: |
+        robot --variable HEADLESS:True --outputdir results tests/04_integration_tests.robot
+      env:
+        BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8080' }}
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: results/
+        retention-days: 30
+
+  publish-results:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: [smoke-tests, ui-tests, api-tests, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v3
+      with:
+        path: all-results
+    
+    - name: Publish test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: combined-test-results
+        path: all-results/
+        retention-days: 90
+    
+    - name: Test Summary
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Test execution completed. Check artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY

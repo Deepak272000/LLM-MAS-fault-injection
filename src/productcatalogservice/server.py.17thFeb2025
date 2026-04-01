@@ -1,0 +1,70 @@
+import grpc
+import os
+import json
+from concurrent import futures
+import hipstershop_pb2
+import hipstershop_pb2_grpc
+from catalog_graph import graph
+
+class ProductCatalogService(hipstershop_pb2_grpc.ProductCatalogServiceServicer):
+    def __init__(self):
+        # Ensure the file exists in your Docker image
+        with open('products.json', 'r') as f:
+            self.db = json.load(f)['products']
+
+    def _convert(self, p):
+        return hipstershop_pb2.Product(
+            id=p['id'],
+            name=p['name'],
+            description=p['description'],
+            picture=p['picture'],
+            categories=p.get('categories', []),
+            price_usd=hipstershop_pb2.Money(
+                currency_code=p['priceUsd']['currencyCode'],
+                units=p['priceUsd']['units'],
+                nanos=p['priceUsd']['nanos']
+            )
+        )
+
+    def ListProducts(self, request, context):
+        # FIXED: Use 'products=' keyword
+        return hipstershop_pb2.ListProductsResponse(
+            products=[self._convert(p) for p in self.db]
+        )
+
+    def GetProduct(self, request, context):
+        p = next((x for x in self.db if x['id'] == request.id), None)
+        if not p:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            return hipstershop_pb2.Product()
+        return self._convert(p)
+    
+    def SearchProducts(self, request, context):
+        print(f"--- AI Search Triggered: '{request.query}' ---")
+        inputs = {"query": request.query}
+        
+        try:
+            output = graph.invoke(inputs)
+            print(f"AI Output: {output}") # Check if LangGraph found anything
+            
+            # Use keyword argument 'results=' as previously discussed
+            pb_results = [self._convert(p) for p in output.get('results', [])]
+            print(f"Returning {len(pb_results)} products")
+            
+            return hipstershop_pb2.SearchProductsResponse(results=pb_results)
+        except Exception as e:
+            print(f"Error in AI logic: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return hipstershop_pb2.SearchProductsResponse() 
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    hipstershop_pb2_grpc.add_ProductCatalogServiceServicer_to_server(ProductCatalogService(), server)
+    server.add_insecure_port(f'[::]:3550')
+    print("Server started on port 3550")
+    server.start()
+    server.wait_for_termination()
+
+if __name__ == '__main__':
+    serve()

@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  robot-tests:
+    image: python:3.9-slim
+    container_name: online-boutique-robot-tests
+    working_dir: /tests
+    volumes:
+      - ./:/tests
+      - ./results:/tests/results
+    environment:
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:8080}
+      - NAMESPACE=${NAMESPACE:-default}
+      - HEADLESS=${HEADLESS:-True}
+    command: >
+      sh -c "
+        pip install -r requirements.txt &&
+        rfbrowser init &&
+        robot --outputdir results tests/
+      "
+    network_mode: host
+
+  robot-smoke:
+    image: python:3.9-slim
+    container_name: online-boutique-robot-smoke
+    working_dir: /tests
+    volumes:
+      - ./:/tests
+      - ./results:/tests/results
+    environment:
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:8080}
+      - HEADLESS=True
+    command: >
+      sh -c "
+        pip install -r requirements.txt &&
+        rfbrowser init &&
+        robot --include smoke --outputdir results tests/
+      "
+    network_mode: host
+
+  robot-ui:
+    image: python:3.9-slim
+    container_name: online-boutique-robot-ui
+    working_dir: /tests
+    volumes:
+      - ./:/tests
+      - ./results:/tests/results
+    environment:
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:8080}
+      - HEADLESS=True
+    command: >
+      sh -c "
+        pip install -r requirements.txt &&
+        rfbrowser init &&
+        robot --outputdir results tests/01_ui_tests.robot
+      "
+    network_mode: host
+
+  robot-api:
+    image: python:3.9-slim
+    container_name: online-boutique-robot-api
+    working_dir: /tests
+    volumes:
+      - ./:/tests
+      - ./results:/tests/results
+    environment:
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:8080}
+    command: >
+      sh -c "
+        pip install -r requirements.txt &&
+        robot --outputdir results tests/02_api_tests.robot
+      "
+    network_mode: host

@@ -1,0 +1,25 @@
+import json
+from typing import TypedDict, List
+from langgraph.graph import StateGraph, END
+from langchain_ollama import OllamaLLM
+
+class State(TypedDict):
+    query: str
+    results: List[dict]
+
+# Load products once
+with open('products.json', 'r') as f:
+    ALL_PRODUCTS = json.load(f)['products']
+
+def search_node(state: State):
+    llm = OllamaLLM(model="llama3", base_url="http://ollama-service:11434")
+    # LLM filters the products based on the query
+    prompt = f"Find items related to '{state['query']}' in: {ALL_PRODUCTS}"
+    # In a real app, you'd use a vector DB here, but for demo, let LLM pick IDs
+    return {"results": ALL_PRODUCTS[:2]} # Simplified for example
+
+workflow = StateGraph(State)
+workflow.add_node("search", search_node)
+workflow.set_entry_point("search")
+workflow.add_edge("search", END)
+graph = workflow.compile()

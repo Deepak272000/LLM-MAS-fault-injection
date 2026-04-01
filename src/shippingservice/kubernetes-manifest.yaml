@@ -1,0 +1,535 @@
+# =============================================================================
+# Kubernetes Manifests — Llama 3 Agent-Based ShippingService
+# Generic / bare-metal edition (no cloud provider dependencies)
+# =============================================================================
+#
+# QUICK START
+#   1. Label your GPU node (skip if CPU-only):
+#        kubectl label node <your-gpu-node> accelerator=gpu
+#
+#   2. Install the NVIDIA device plugin (skip if CPU-only):
+#        kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.5/nvidia-device-plugin.yml
+#
+#   3. Create the HuggingFace secret:
+#        kubectl create secret generic huggingface-token -n shipping \
+#          --from-literal=token=hf_YOUR_TOKEN_HERE
+#      (Accept the Llama 3 license at huggingface.co/meta-llama first)
+#
+#   4. Choose your storage option below (search "CHOOSE ONE STORAGE OPTION")
+#      and uncomment the right block. Default is local-path (k3s / Rancher).
+#
+#   5. Apply:
+#        kubectl apply -f kubernetes-manifest.yaml
+#
+#   6. Watch it come up (model download takes 2-10 min on first boot):
+#        kubectl get pods -n shipping -w
+#        kubectl logs -n shipping -l app=llama-service -f
+#
+# GPU MEMORY GUIDE
+#   Llama-3-8B  fp16  → 16 GB VRAM  (RTX 3090 / RTX 4090 / A10 / A100)
+#   Llama-3-8B  int8  → 10 GB VRAM  (add --quantization bitsandbytes)
+#   Llama-3-8B  int4  →  6 GB VRAM  (use an AWQ-quantized model)
+#   CPU-only          → 32 GB RAM   (slow but works; see CPU-ONLY section)
+# =============================================================================
+
+# ── Namespace ─────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pauric-test 
+  labels:
+    app.kubernetes.io/part-of: microservices-demo
+
+---
+# ── HuggingFace token ─────────────────────────────────────────────────────────
+# Run: kubectl create secret generic huggingface-token -n shipping \
+#        --from-literal=token=hf_...
+# Do NOT commit real tokens into this file.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: huggingface-token
+  namespace: pauric-test 
+type: Opaque
+stringData:
+  token: "REPLACE_WITH_HF_TOKEN"
+
+---
+# =============================================================================
+# CHOOSE ONE STORAGE OPTION — uncomment the right block, comment the others
+# =============================================================================
+
+# ── Option A: local-path (DEFAULT — works on k3s / Rancher out of the box) ───
+# Install on vanilla k8s:
+#   kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-model-cache
+  namespace: pauric-test 
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 30Gi
+
+# ── Option B: hostPath (single bare-metal node, no provisioner needed) ───────
+# 1. Create the directory on the node first:
+#      sudo mkdir -p /data/llama-cache && sudo chmod 777 /data/llama-cache
+# 2. Comment out Option A above and uncomment below:
+#
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: llama-model-cache-pv
+# spec:
+#   capacity:
+#     storage: 30Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   hostPath:
+#     path: /data/llama-cache
+#     type: DirectoryOrCreate
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: llama-model-cache
+#   namespace: pauric-test 
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   storageClassName: ""   # empty string = manual PV binding
+#   volumeName: llama-model-cache-pv
+#   resources:
+#     requests:
+#       storage: 30Gi
+
+# ── Option C: NFS / Longhorn / Rook-Ceph / other dynamic provisioner ─────────
+# Just swap storageClassName in Option A to your provisioner name, e.g.:
+#   storageClassName: longhorn
+#   storageClassName: rook-cephfs
+#   storageClassName: nfs-client
+# Use ReadWriteMany if the PVC must be mounted by multiple nodes simultaneously.
+
+---
+# =============================================================================
+# vLLM — Llama 3 inference server
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-service
+  namespace: pauric-test 
+  labels:
+    app: llama-service
+spec:
+  replicas: 1   # one replica per physical GPU. Add nodes + replicas for scale.
+  selector:
+    matchLabels:
+      app: llama-service
+  template:
+    metadata:
+      labels:
+        app: llama-service
+      annotations:
+        deployment/model: "meta-llama/Meta-Llama-3-8B-Instruct"
+        deployment/runtime: "vLLM"
+    spec:
+      # ── GPU node scheduling ─────────────────────────────────────────────────
+      # Requires: kubectl label node <gpu-node> accelerator=gpu
+      # Remove nodeSelector entirely if ALL your nodes have GPUs.
+      nodeSelector:
+        accelerator: gpu
+
+      # The NVIDIA device plugin taints GPU nodes — this toleration allows
+      # the pod to be scheduled there.
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      # ── CPU-ONLY ALTERNATIVE ────────────────────────────────────────────────
+      # No GPU? Comment out nodeSelector + tolerations above, then replace
+      # the vllm container below with this llama.cpp HTTP server instead:
+      #
+      # containers:
+      #   - name: llamacpp
+      #     image: ghcr.io/ggerganov/llama.cpp:server
+      #     args:
+      #       - --model
+      #       - /model-cache/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf
+      #       - --port
+      #       - "8000"
+      #       - --host
+      #       - "0.0.0.0"
+      #       - --ctx-size
+      #       - "4096"
+      #       - --threads
+      #       - "8"
+      #     # Pre-download a GGUF model into the PVC before deploying:
+      #     #   pip install huggingface_hub
+      #     #   huggingface-cli download bartowski/Meta-Llama-3-8B-Instruct-GGUF \
+      #     #     --include "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf" \
+      #     #     --local-dir /data/llama-cache
+      #     resources:
+      #       requests:
+      #         cpu: "4"
+      #         memory: 16Gi
+      #       limits:
+      #         cpu: "8"
+      #         memory: 20Gi
+      #     volumeMounts:
+      #       - name: model-cache
+      #         mountPath: /model-cache
+      # ────────────────────────────────────────────────────────────────────────
+
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: llama-model-cache
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi   # vLLM uses /dev/shm for inter-process tensor sharing
+
+      containers:
+        - name: vllm
+          # Pin a version — vllm:latest can introduce breaking changes
+          image: vllm/vllm-openai:v0.4.3
+          command:
+            - python
+            - -m
+            - vllm.entrypoints.openai.api_server
+          args:
+            - --model
+            - meta-llama/Meta-Llama-3-8B-Instruct
+            - --port
+            - "8000"
+            - --host
+            - "0.0.0.0"
+            - --dtype
+            - float16
+            - --max-model-len
+            - "4096"
+            - --tensor-parallel-size
+            - "1"         # set to 2 for dual-GPU node
+            - --download-dir
+            - /model-cache
+            # Uncomment for int8 quantization (~10 GB VRAM):
+            # - --quantization
+            # - bitsandbytes
+            # - --load-format
+            # - bitsandbytes
+
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: huggingface-token
+                  key: token
+            - name: VLLM_USAGE_STATS_SERVER
+              value: "off"   # disable outbound telemetry calls
+
+          ports:
+            - containerPort: 8000
+              name: http
+
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+              memory: "18Gi"
+              cpu: "2"
+            limits:
+              nvidia.com/gpu: "1"
+              memory: "24Gi"
+              cpu: "4"
+
+          volumeMounts:
+            - name: model-cache
+              mountPath: /model-cache
+            - name: shm
+              mountPath: /dev/shm
+
+          # startupProbe gives the container up to 10 minutes to load the model
+          # before liveness/readiness kicks in. Prevents premature restarts.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            failureThreshold: 40
+            periodSeconds: 15
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-service
+  namespace: pauric-test 
+spec:
+  type: ClusterIP
+  selector:
+    app: llama-service
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+
+---
+# =============================================================================
+# ShippingService — gRPC agent server (CPU, stateless)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shippingservice
+  namespace: pauric-test 
+  labels:
+    app: shippingservice
+spec:
+  replicas: 1    # stateless — safe to scale horizontally
+  selector:
+    matchLabels:
+      app: shippingservice
+  template:
+    metadata:
+      labels:
+        app: shippingservice
+      annotations:
+        deployment/agent-based: "true"
+        deployment/llm-backend: "llama3-vllm"
+    spec:
+      serviceAccountName: shippingservice
+
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+
+      # Prefer CPU nodes over GPU nodes to avoid wasting GPU capacity.
+      # Remove this block if all your nodes are identical.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: accelerator
+                    operator: DoesNotExist
+
+      containers:
+        - name: server
+          image: shippingservice-llama:latest
+          imagePullPolicy: IfNotPresent   # change to Always when using a registry
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+
+          ports:
+            - containerPort: 50051
+              name: grpc
+
+          env:
+            - name: PORT
+              value: "50051"
+            - name: LLAMA_BASE_URL
+              # Kubernetes DNS format: <svc>.<namespace>.svc.cluster.local
+              value: "http://llama-service.shipping.svc.cluster.local:8000/v1"
+            - name: LLAMA_MODEL
+              value: "meta-llama/Meta-Llama-3-8B-Instruct"
+            - name: DISABLE_TRACING
+              value: "1"
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          readinessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shippingservice
+  namespace: pauric-test 
+spec:
+  type: ClusterIP
+  selector:
+    app: shippingservice
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shippingservice
+  namespace: pauric-test 
+
+---
+# ── HPA — scales shippingservice pods on CPU load ────────────────────────────
+# Note: llama-service GPU scaling is managed by adding physical GPU nodes,
+# not by increasing replica count.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: shippingservice-hpa
+  namespace: pauric-test 
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: shippingservice
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# =============================================================================
+# RBAC — least-privilege for shippingservice
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: shippingservice-role
+  namespace: pauric-test 
+rules: []   # no Kubernetes API access needed
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: shippingservice-rolebinding
+  namespace: pauric-test 
+subjects:
+  - kind: ServiceAccount
+    name: shippingservice
+    namespace: pauric-test 
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: shippingservice-role
+
+---
+# =============================================================================
+# NetworkPolicy — restrict pod-to-pod traffic to minimum required
+# =============================================================================
+# shippingservice: accepts gRPC on 50051, calls llama-service on 8000, DNS only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shippingservice-netpol
+  namespace: pauric-test 
+spec:
+  podSelector:
+    matchLabels:
+      app: shippingservice
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 50051
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: llama-service
+      ports:
+        - port: 8000
+          protocol: TCP
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+---
+# llama-service: accepts HTTP on 8000, egress for model download from HuggingFace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llama-service-netpol
+  namespace: pauric-test 
+spec:
+  podSelector:
+    matchLabels:
+      app: llama-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: shippingservice
+      ports:
+        - port: 8000
+          protocol: TCP
+  egress:
+    # Allow HTTPS for HuggingFace model download on first boot
+    - ports:
+        - port: 443
+          protocol: TCP
+    # Allow DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

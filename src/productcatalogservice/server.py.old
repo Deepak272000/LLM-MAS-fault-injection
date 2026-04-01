@@ -1,0 +1,38 @@
+class ProductCatalogService(hipstershop_pb2_grpc.ProductCatalogServiceServicer):
+    def __init__(self):
+        with open('products.json', 'r') as f:
+            self.db = json.load(f)['products']
+
+    def _convert_to_pb(self, p_dict):
+        """Helper to convert a dictionary to a Product Protobuf message"""
+        return hipstershop_pb2.Product(
+            id=p_dict['id'],
+            name=p_dict['name'],
+            description=p_dict['description'],
+            picture=p_dict['picture'],
+            price_usd=hipstershop_pb2.Money(
+                currency_code=p_dict['priceUsd']['currencyCode'],
+                units=p_dict['priceUsd']['units'],
+                nanos=p_dict['priceUsd']['nanos']
+            ),
+            categories=p_dict.get('categories', [])
+        )
+
+    def ListProducts(self, request, context):
+        # FIX: Use the keyword argument 'products='
+        pb_products = [self._convert_to_pb(p) for p in self.db]
+        return hipstershop_pb2.ListProductsResponse(products=pb_products)
+
+    def GetProduct(self, request, context):
+        p_dict = next((p for p in self.db if p['id'] == request.id), None)
+        if not p_dict:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            return hipstershop_pb2.Product()
+        return self._convert_to_pb(p_dict)
+
+    def SearchProducts(self, request, context):
+        inputs = {"query": request.query}
+        output = graph.invoke(inputs)
+        # FIX: Use the keyword argument 'results='
+        pb_results = [self._convert_to_pb(p) for p in output.get('results', [])]
+        return hipstershop_pb2.SearchProductsResponse(results=pb_results)
