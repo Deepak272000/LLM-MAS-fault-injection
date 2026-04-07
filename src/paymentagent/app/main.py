@@ -9,7 +9,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
  
-app = FastAPI(title="Microservices Agent")
+app = FastAPI(title="Payment Agent")
 
 
 app.include_router(payment_router)
