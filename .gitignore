@@ -8,6 +8,8 @@ __pycache__/
 # Java / Gradle
 .gradle/
 build/
+out/
 
-# VS Code
+# OS / editor
 .vscode/
+.DS_Store
