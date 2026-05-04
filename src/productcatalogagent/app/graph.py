@@ -38,6 +38,16 @@ Return only one label.
 """.strip()
 
     response = llm.invoke(prompt)
+
+    input_tokens = response.usage_metadata.get("input_tokens", 0)
+    output_tokens = response.usage_metadata.get("output_tokens", 0)
+    total_tokens = response.usage_metadata.get("total_tokens", 0)
+
+    print(f"TOKEN_METRICS input={input_tokens} output={output_tokens} total={total_tokens}")
+
+    with open("token_log.txt", "a") as f:
+        f.write(f"{total_tokens}\n")
+
     label = response.content.strip().lower()
 
     if "list_products" in label:
