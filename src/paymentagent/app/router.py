@@ -21,7 +21,7 @@ def health():
 async def charge(request: PaymentRequest):
     logger.info("[API] /payment/charge called")
     logger.info(f"[API] Request payload: {request.dict(exclude={'credit_card_number', 'credit_card_cvv'})}")
-    result = graph.ainvoke({
+    result = await graph.ainvoke({
         "query": request.query,
         "currency_code": request.currency_code,
         "units": request.units,

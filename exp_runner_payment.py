@@ -2,6 +2,8 @@ import subprocess
 import json
 import requests
 import time
+import os
+import shutil
 
 # -------------------------
 # CONFIG
@@ -14,10 +16,18 @@ AGENT_URL = "http://localhost:8001/payment/charge"
 # CALL BASELINE (gRPC)
 # -------------------------
 def call_baseline():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    PROTO_PATH = os.path.join(BASE_DIR, "src/paymentservice/proto")
+
+    grpcurl_path = shutil.which("grpcurl")
+    if not grpcurl_path:
+        return {"error": "grpcurl not found in PATH"}
+
+
     cmd = [
-        "grpcurl",
+        grpcurl_path,
         "-plaintext",
-        "-import-path", "./protos",
+        "-import-path", PROTO_PATH,
         "-proto", "demo.proto",
         "-d",
         json.dumps({
@@ -61,7 +71,7 @@ def call_agent():
     }
 
     try:
-        res = requests.post(AGENT_URL, json=payload, timeout=5)
+        res = requests.post(AGENT_URL, json=payload, timeout=20)
         return res.json()
     except Exception as e:
         return {"error": str(e)}
