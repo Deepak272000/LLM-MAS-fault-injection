@@ -23,6 +23,8 @@ Environment variables:
   LLAMA_BASE_URL   — OpenAI-compatible base URL, e.g. http://llama-service:8000/v1
   LLAMA_MODEL      — model name to pass in the request, e.g. "meta-llama/Meta-Llama-3-8B-Instruct"
   PORT             — gRPC port (default 50051)
+  MONGO_URI        — MongoDB connection string
+  MONGO_DB_NAME    — MongoDB database name (default: shipping_service)
 """
 
 import json
@@ -34,17 +36,16 @@ import requests
 from agents.quote_agent import QuoteAgent
 from agents.carrier_agent import CarrierSelectionAgent
 from agents.tracking_agent import TrackingAgent
+from repository import save_quote, save_shipment   # ← new
 
 log = logging.getLogger(__name__)
 
 LLAMA_BASE_URL = os.environ.get("LLAMA_BASE_URL", "http://ollama:/v1")
 LLAMA_MODEL    = os.environ.get("LLAMA_MODEL", "llama3:latest")
 
-MAX_ITERATIONS = 8   # safety cap on ReAct loop turns
+MAX_ITERATIONS = 8
 MAX_TOKENS     = 512
 
-
-# ── Tool registry (same logical tools as Claude version) ─────────────────────
 
 TOOL_DESCRIPTIONS = """You have access to these tools:
 
@@ -79,12 +80,11 @@ When you have the final answer, output:
 Final Answer: <valid JSON with the result>
 """
 
-
 REACT_SYSTEM_PROMPT = (
     "You are a shipping logistics agent. "
     "Solve tasks step-by-step. "
     "Always use Thought/Action/Action Input/Final Answer format exactly. "
-    "Keep Thought sections under 2 sentences. Do not explain tool schemas."  # ? add this
+    "Keep Thought sections under 2 sentences. Do not explain tool schemas."
 )
 
 
@@ -96,25 +96,21 @@ class ShippingOrchestrator:
     """
 
     def __init__(self):
-        self.base_url = LLAMA_BASE_URL.rstrip("/")
-        self.model    = LLAMA_MODEL
-        self.quote_agent   = QuoteAgent()
-        self.carrier_agent = CarrierSelectionAgent()
-        self.tracking_agent = TrackingAgent()
+        self.base_url        = LLAMA_BASE_URL.rstrip("/")
+        self.model           = LLAMA_MODEL
+        self.quote_agent     = QuoteAgent()
+        self.carrier_agent   = CarrierSelectionAgent()
+        self.tracking_agent  = TrackingAgent()
         log.info(f"ShippingOrchestrator (Llama) ready — endpoint={self.base_url}, model={self.model}")
 
     # ── Llama inference call ──────────────────────────────────────────────────
 
     def _call_llama(self, messages: list, stop: list = None) -> str:
-        """
-        Call the Llama 3 OpenAI-compatible chat completions endpoint.
-        Returns the assistant message text.
-        """
         payload = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": MAX_TOKENS,
-            "temperature": 0.0,   # deterministic for agentic use
+            "model":       self.model,
+            "messages":    messages,
+            "max_tokens":  MAX_TOKENS,
+            "temperature": 0.0,
         }
         if stop:
             payload["stop"] = stop
@@ -123,24 +119,22 @@ class ShippingOrchestrator:
             resp = requests.post(
                 f"{self.base_url}/chat/completions",
                 json=payload,
-                timeout=(60,120),
+                timeout=(60, 120),
                 headers={"Content-Type": "application/json"},
             )
             resp.raise_for_status()
-            data = resp.json()
-
+            data    = resp.json()
             content = data["choices"][0]["message"]["content"].strip()
 
-            usage = data.get("usage", {})
-
-            input_tokens = usage.get("prompt_tokens", 0)
+            usage         = data.get("usage", {})
+            input_tokens  = usage.get("prompt_tokens", 0)
             output_tokens = usage.get("completion_tokens", 0)
-            total_tokens = usage.get("total_tokens", input_tokens + output_tokens)
+            total_tokens  = usage.get("total_tokens", input_tokens + output_tokens)
 
             print(f"TOKEN_METRICS input={input_tokens} output={output_tokens} total={total_tokens}")
 
             with open("token_log.txt", "a") as f:
-             f.write(f"{total_tokens}\n")
+                f.write(f"{total_tokens}\n")
 
             return content
         except requests.exceptions.ConnectionError as e:
@@ -154,25 +148,15 @@ class ShippingOrchestrator:
     # ── ReAct parser ──────────────────────────────────────────────────────────
 
     def _parse_react_output(self, text: str):
-        """
-        Parse a single ReAct turn from Llama's output.
-        Returns one of:
-          ("action",   tool_name, tool_input_dict)
-          ("final",    result_str,  None)
-          ("unknown",  raw_text,    None)
-        """
-        # Final Answer
         fa_match = re.search(r"Final Answer:\s*(\{.*\})", text, re.DOTALL)
         if fa_match:
             return ("final", fa_match.group(1).strip(), None)
 
-        # Action block — bracket-depth counter handles nested JSON correctly
         action_match = re.search(r"Action:\s*(\w+)", text)
-        ai_start = re.search(r"Action Input:\s*(\{)", text)
+        ai_start     = re.search(r"Action Input:\s*(\{)", text)
 
         if action_match and ai_start:
             tool_name = action_match.group(1).strip()
-            # Walk forward to find the matching closing brace
             start = ai_start.start(1)
             depth, end = 0, start
             for i, ch in enumerate(text[start:], start):
@@ -193,7 +177,7 @@ class ShippingOrchestrator:
 
         return ("unknown", text, None)
 
-    # ── Tool dispatcher (identical interface to Claude version) ───────────────
+    # ── Tool dispatcher ───────────────────────────────────────────────────────
 
     def _dispatch_tool(self, tool_name: str, tool_input: dict) -> str:
         log.debug(f"Dispatching tool: {tool_name}, input={tool_input}")
@@ -223,48 +207,21 @@ class ShippingOrchestrator:
     # ── ReAct agentic loop ────────────────────────────────────────────────────
 
     def _run_agent_loop(self, task_prompt: str) -> str:
-        """
-        Runs the ReAct loop:
-          1. Send system + task to Llama, stopping at "Observation:"
-          2. Parse Action or Final Answer
-          3. If Action → dispatch tool, append Observation, continue
-          4. If Final Answer → return it
-          5. Cap at MAX_ITERATIONS to prevent runaway loops
-        """
-        # Build the initial conversation
         messages = [
             {"role": "system", "content": REACT_SYSTEM_PROMPT},
             {"role": "user",   "content": TOOL_DESCRIPTIONS + "\n\n" + task_prompt},
         ]
-        #messages = [
-        #    {"role": "system", "content": REACT_SYSTEM_PROMPT},
-        #    {"role": "user",   "content": task_prompt},
-        #]
-
-        # Running scratchpad — we append Observations inline into the
-        # assistant message to simulate a single growing context
         scratchpad = ""
 
         for iteration in range(MAX_ITERATIONS):
             log.debug(f"ReAct iteration {iteration + 1}/{MAX_ITERATIONS}")
 
-            # Ask Llama to continue from current scratchpad
             current_messages = messages.copy()
             if scratchpad:
-                # Append the accumulated reasoning as a partial assistant turn
-                current_messages.append(
-                    {"role": "assistant", "content": scratchpad}
-                )
-                # Ask Llama to continue
-                current_messages.append(
-                    {"role": "user", "content": "Continue."}
-                )
+                current_messages.append({"role": "assistant", "content": scratchpad})
+                current_messages.append({"role": "user",      "content": "Continue."})
 
-            llama_output = self._call_llama(
-                current_messages,
-                stop=["Observation:"],  # stop before writing its own observation
-            )
-
+            llama_output = self._call_llama(current_messages, stop=["Observation:"])
             log.debug(f"Llama output:\n{llama_output}")
             scratchpad += "\n" + llama_output
 
@@ -273,32 +230,24 @@ class ShippingOrchestrator:
             if kind == "final":
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
-
             elif kind == "action":
-                tool_result = self._dispatch_tool(value, tool_input)
-                observation = f"\nObservation: {tool_result}\n"
-                scratchpad += observation
+                tool_result  = self._dispatch_tool(value, tool_input)
+                observation  = f"\nObservation: {tool_result}\n"
+                scratchpad  += observation
                 log.debug(f"Appended observation: {observation.strip()}")
-
             else:
-                # Llama produced unexpected output — log and try to recover
                 log.warning(f"Unexpected Llama output (iteration {iteration+1}): {value[:200]}")
-                # Nudge the model back on track
                 scratchpad += "\nThought: I need to use a tool or provide a Final Answer.\n"
 
         raise RuntimeError(
             f"ReAct loop exceeded {MAX_ITERATIONS} iterations without a Final Answer"
         )
 
-    # ── Public API (identical signatures to Claude version) ──────────────────
-    
-    async def get_quote(self, address: dict, items: list) -> dict:
-        result = self.quote_agent.estimate(address, items)
-        return {"cost_usd": float(result["cost_usd"])} 
+    # ── Public API ────────────────────────────────────────────────────────────
 
     async def get_quote(self, address: dict, items: list) -> dict:
         """
-        Estimate shipping cost using Llama 3 + ReAct.
+        Estimate shipping cost using Llama 3 + ReAct, then save to MongoDB.
         Returns: {"cost_usd": float}
         """
         task = (
@@ -313,17 +262,27 @@ class ShippingOrchestrator:
         log.info(f"GetQuote agent response: {raw}")
 
         try:
-            data = json.loads(raw)
-            return {"cost_usd": float(data["cost_usd"])}
+            data     = json.loads(raw)
+            cost_usd = float(data["cost_usd"])
         except Exception:
-            match = re.search(r"[\d]+\.?[\d]*", raw)
-            cost = float(match.group()) if match else 5.0
-            return {"cost_usd": cost}
+            match    = re.search(r"[\d]+\.?[\d]*", raw)
+            cost_usd = float(match.group()) if match else 5.0
+
+        # ── Save quote to MongoDB ─────────────────────────────────────────────
+        quote_result = self.quote_agent.estimate(address, items)
+        await save_quote(
+            address   = address,
+            items     = items,
+            cost_usd  = cost_usd,
+            breakdown = quote_result.get("breakdown", {}),
+        )
+
+        return {"cost_usd": cost_usd}
 
     async def ship_order(self, address: dict, items: list) -> dict:
         """
         Orchestrate a full shipment using Llama 3 + ReAct:
-        quote → carrier selection → tracking ID.
+        quote → carrier selection → tracking ID, then save to MongoDB.
         Returns: {"tracking_id": str}
         """
         item_count = sum(i.get("quantity", 1) for i in items)
@@ -336,7 +295,8 @@ class ShippingOrchestrator:
             f"1. get_shipping_quote — to get the cost\n"
             f"2. select_carrier — using the cost and item count\n"
             f"3. generate_tracking_id — using the chosen carrier\n"
-            f'Then return: Final Answer: {{"tracking_id": "<id>"}}'
+            f'Then return: Final Answer: {{"tracking_id": "<id>", "carrier": "<name>", '
+            f'"service_level": "<level>", "cost_usd": <number>}}'
         )
 
         raw = self._run_agent_loop(task)
@@ -344,6 +304,22 @@ class ShippingOrchestrator:
 
         try:
             data = json.loads(raw)
-            return {"tracking_id": str(data["tracking_id"])}
         except Exception:
-            return {"tracking_id": raw.strip()[:64] or "UNKNOWN-TRACKING-ID"}
+            data = {}
+
+        tracking_id   = str(data.get("tracking_id", raw.strip()[:64] or "UNKNOWN-TRACKING-ID"))
+        carrier       = data.get("carrier", "Unknown")
+        service_level = data.get("service_level", "standard")
+        cost_usd      = float(data.get("cost_usd", 0.0))
+
+        # ── Save shipment to MongoDB ───────────────────────────────────────────
+        await save_shipment(
+            address       = address,
+            items         = items,
+            cost_usd      = cost_usd,
+            carrier       = carrier,
+            service_level = service_level,
+            tracking_id   = tracking_id,
+        )
+
+        return {"tracking_id": tracking_id}
