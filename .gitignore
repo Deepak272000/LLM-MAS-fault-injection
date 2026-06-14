@@ -27,3 +27,21 @@ __pycache__/
 # Build (Go / C#)
 bin/
 obj/
+
+# Shippingservice generated benchmark artifacts
+src/shippingservice/lkw_rip_results.json
+src/shippingservice/*_lkw_rip_results.json
+src/shippingservice/*_lkw_rip_evidence.json
+src/shippingservice/*_stability_matrix.json
+src/shippingservice/*_stability_matrix.md
+src/shippingservice/*_proof_package.md
+src/shippingservice/*_slack_summary.txt
+src/shippingservice/fm25_consolidated_matrix.json
+src/shippingservice/fm25_consolidated_matrix.md
+src/shippingservice/stability_condition_matrix.json
+src/shippingservice/stability_condition_matrix.md
+src/shippingservice/langfuse_*.jsonl
+src/shippingservice/trulens_*.db
+src/shippingservice/trulens_*.json
+src/shippingservice/files.zip
+testing/online-boutique-tests/playwright-log.txt

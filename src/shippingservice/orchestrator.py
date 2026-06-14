@@ -32,12 +32,116 @@ import logging
 import os
 import re
 import requests
+from datetime import datetime, timezone
+
+try:
+    from langsmith import traceable
+    from langsmith.wrappers import wrap_openai  # noqa: F401 — available but optional
+    LANGSMITH_ENABLED = bool(os.getenv("LANGSMITH_API_KEY"))
+except ImportError:
+    LANGSMITH_ENABLED = False
+    def traceable(*args, **kwargs):
+        """No-op fallback when langsmith is not installed."""
+        def decorator(fn):
+            return fn
+        return decorator if args and callable(args[0]) else decorator
 
 from agents.quote_agent import QuoteAgent
 from agents.carrier_agent import CarrierSelectionAgent
 from agents.tracking_agent import TrackingAgent
 from repository import save_quote, save_shipment
 from config import LLAMA_BASE_URL, LLAMA_MODEL
+import fault_injection as fi
+
+
+# ── LKW (Last Known Well) Checkpoint Logger ───────────────────────────────────
+
+class LKWCheckpoint:
+    """
+    Records the state at each well-defined step of the shipping workflow.
+    Used by the RIP (Reachability → Infection → Propagation) test harness
+    to detect where quality deviation first occurs and how far it spreads.
+
+    Checkpoints:
+      TASK_START      — inputs received, fault mode recorded
+      QUOTE_DONE      — cost_usd returned by get_shipping_quote
+      CARRIER_DONE    — carrier + service_level returned by select_carrier
+      TRACKING_DONE   — tracking_id generated
+      SAVE_DONE       — shipment persisted to MongoDB
+      FINAL_ANSWER    — raw Final Answer string from LLM
+    """
+
+    EXPECTED_STEPS = [
+        "TASK_START",
+        "QUOTE_DONE",
+        "CARRIER_DONE",
+        "TRACKING_DONE",
+        "SAVE_DONE",
+        "FINAL_ANSWER",
+    ]
+
+    def __init__(self):
+        self.checkpoints: list[dict] = []
+        self.fault_mode = fi.active_fault()
+
+    def record(self, step: str, data: dict):
+        entry = {
+            "step":       step,
+            "timestamp":  datetime.now(timezone.utc).isoformat(),
+            "fault_mode": self.fault_mode,
+            "data":       data,
+        }
+        self.checkpoints.append(entry)
+        log.info("[LKW] %s | fault=%s | data=%s", step, self.fault_mode, data)
+
+    def missing_steps(self) -> list[str]:
+        """Return steps that were not reached — indicates propagation depth."""
+        reached = {c["step"] for c in self.checkpoints}
+        return [s for s in self.EXPECTED_STEPS if s not in reached]
+
+    def to_dict(self) -> dict:
+        return {
+            "fault_mode":     self.fault_mode,
+            "checkpoints":    self.checkpoints,
+            "missing_steps":  self.missing_steps(),
+            "rip_summary":    self._rip_summary(),
+        }
+
+    def _rip_summary(self) -> dict:
+        """
+        RIP analysis:
+          Reachability  — did the fault-injected path reach the same steps as baseline?
+          Infection     — which checkpoint first shows deviated data?
+          Propagation   — how many downstream steps were affected?
+        """
+        reached   = [c["step"] for c in self.checkpoints]
+        missing   = self.missing_steps()
+        infected  = None
+
+        for c in self.checkpoints:
+            d = c.get("data", {})
+            # Detect infection signals
+            if c["step"] == "QUOTE_DONE" and d.get("cost_usd", 1) <= 0:
+                infected = c["step"]
+                break
+            if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "Unknown"):
+                infected = c["step"]
+                break
+            if c["step"] == "TRACKING_DONE" and "PREMATURE" in str(d.get("tracking_id", "")):
+                infected = c["step"]
+                break
+            if c["step"] == "SAVE_DONE" and not d.get("saved", True):
+                infected = c["step"]
+                break
+
+        propagation = len(missing)  # each missing step = one level of propagation
+
+        return {
+            "reachability": reached,
+            "infection_point": infected,
+            "propagation_depth": propagation,
+            "missing_steps": missing,
+        }
 
 
 log = logging.getLogger(__name__)
@@ -187,11 +291,21 @@ class ShippingOrchestrator:
                 tool_input.get("address", {}), tool_input.get("items", [])
             )
         elif tool_name == "select_carrier":
+            quoted_cost = float(tool_input.get("cost_usd", 0))
+            selection_cost = fi.maybe_ignore_quote_for_carrier(quoted_cost)
             result = self.carrier_agent.select(
                 tool_input.get("address", {}),
-                float(tool_input.get("cost_usd", 0)),
+                selection_cost,
                 int(tool_input.get("item_count", 1)),
             )
+            if fi.active_fault() == "FM_2_5" and isinstance(result, dict):
+                result["ignored_downstream_quote"] = True
+                result["quoted_cost_usd"] = quoted_cost
+                result["used_cost_usd"] = selection_cost
+            # FM-2.2: replace real result with hallucinated carrier data
+            result = fi.maybe_hallucinate_carrier(result)
+            # BL-VENDOR_NEGOTIATION: force expensive fallback carrier
+            result = fi.maybe_force_vendor(result)
         elif tool_name == "generate_tracking_id":
             result = self.tracking_agent.generate(
                 tool_input.get("carrier", "FedEx"),
@@ -227,6 +341,12 @@ class ShippingOrchestrator:
 
             kind, value, tool_input = self._parse_react_output(llama_output)
 
+            # FM-3.1: inject premature Final Answer after first observation
+            early = fi.maybe_inject_early_termination(iteration, scratchpad)
+            if early is not None:
+                llama_output = early
+                kind, value, tool_input = self._parse_react_output(llama_output)
+
             if kind == "final":
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
@@ -245,11 +365,15 @@ class ShippingOrchestrator:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    async def get_quote(self, address: dict, items: list) -> dict:
+    @traceable(name="shipping.get_quote")
+    async def get_quote(self, address: dict, items: list, capture_partial_trace: bool = False) -> dict:
         """
         Estimate shipping cost using Llama 3 + ReAct, then save to MongoDB.
         Returns: {"cost_usd": float}
         """
+        ckpt = LKWCheckpoint()
+        ckpt.record("TASK_START", {"address": address, "item_count": len(items)})
+
         task = (
             f"Task: Estimate the shipping cost.\n"
             f"Address: {json.dumps(address)}\n"
@@ -258,8 +382,16 @@ class ShippingOrchestrator:
             f'Final Answer: {{"cost_usd": <number>}}'
         )
 
-        raw = self._run_agent_loop(task)
-        log.info(f"GetQuote agent response: {raw}")
+        try:
+            raw = self._run_agent_loop(task)
+            log.info(f"GetQuote agent response: {raw}")
+        except Exception as exc:
+            if not capture_partial_trace:
+                raise
+            log.exception("GetQuote failed during benchmark capture")
+            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc)})
+            log.info("[LKW] get_quote trace: %s", json.dumps(ckpt.to_dict()))
+            return {"error": str(exc), "_lkw": ckpt.to_dict()}
 
         try:
             data     = json.loads(raw)
@@ -268,25 +400,41 @@ class ShippingOrchestrator:
             match    = re.search(r"[\d]+\.?[\d]*", raw)
             cost_usd = float(match.group()) if match else 5.0
 
+        ckpt.record("QUOTE_DONE", {"cost_usd": cost_usd})
+        ckpt.record("FINAL_ANSWER", {"raw": raw})
+
         # ── Save quote to MongoDB ─────────────────────────────────────────────
         quote_result = self.quote_agent.estimate(address, items)
-        await save_quote(
-            address   = address,
-            items     = items,
-            cost_usd  = cost_usd,
-            breakdown = quote_result.get("breakdown", {}),
-        )
+        if capture_partial_trace:
+            ckpt.record("SAVE_DONE", {"saved": False, "reason": "benchmark_mode"})
+        else:
+            await save_quote(
+                address   = address,
+                items     = items,
+                cost_usd  = cost_usd,
+                breakdown = quote_result.get("breakdown", {}),
+            )
+            ckpt.record("SAVE_DONE", {"saved": True, "cost_usd": cost_usd})
 
-        return {"cost_usd": cost_usd}
+        log.info("[LKW] get_quote trace: %s", json.dumps(ckpt.to_dict()))
+        return {"cost_usd": cost_usd, "_lkw": ckpt.to_dict()}
 
-    async def ship_order(self, address: dict, items: list) -> dict:
+    @traceable(name="shipping.ship_order")
+    async def ship_order(self, address: dict, items: list, capture_partial_trace: bool = False) -> dict:
         """
         Orchestrate a full shipment using Llama 3 + ReAct:
         quote → carrier selection → tracking ID, then save to MongoDB.
         Returns: {"tracking_id": str}
         """
+        ckpt = LKWCheckpoint()
+        # BL-INVENTORY_MISMATCH: corrupt quantities before computing item_count
+        items = fi.maybe_corrupt_items(items)
         item_count = sum(i.get("quantity", 1) for i in items)
-        task = (
+        # BL-COMPLIANCE_AMBIGUITY: tag address with unknown jurisdiction
+        address = fi.maybe_tag_compliance_unknown(address)
+        ckpt.record("TASK_START", {"address": address, "item_count": item_count})
+
+        base_task = (
             f"Task: Fulfill a shipping order step by step.\n"
             f"Address: {json.dumps(address)}\n"
             f"Items: {json.dumps(items)}\n"
@@ -298,9 +446,21 @@ class ShippingOrchestrator:
             f'Then return: Final Answer: {{"tracking_id": "<id>", "carrier": "<name>", '
             f'"service_level": "<level>", "cost_usd": <number>}}'
         )
+        # FM-1.2: corrupt task spec before sending to LLM
+        task = fi.corrupt_task_spec(base_task)
 
-        raw = self._run_agent_loop(task)
-        log.info(f"ShipOrder agent response: {raw}")
+        try:
+            raw = self._run_agent_loop(task)
+            log.info(f"ShipOrder agent response: {raw}")
+            ckpt.record("FINAL_ANSWER", {"raw": raw})
+        except Exception as exc:
+            if not capture_partial_trace:
+                raise
+            log.exception("ShipOrder failed during benchmark capture")
+            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc)})
+            ckpt.record("SAVE_DONE", {"saved": False, "reason": "benchmark_mode"})
+            log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
+            return {"error": str(exc), "_lkw": ckpt.to_dict()}
 
         try:
             data = json.loads(raw)
@@ -311,15 +471,64 @@ class ShippingOrchestrator:
         carrier       = data.get("carrier", "Unknown")
         service_level = data.get("service_level", "standard")
         cost_usd      = float(data.get("cost_usd", 0.0))
+        # BL-REFUND_REASONING: force negative cost to expose refund-check gap
+        cost_usd = fi.maybe_corrupt_cost(cost_usd)
+
+        # FM-3.1: if fault-injected early answer is observed, stop before
+        # carrier/save workflow to surface a deterministic premature termination
+        # signal in LKW/RIP output.
+        if tracking_id.startswith("PREMATURE"):
+            ckpt.record("QUOTE_DONE", {"cost_usd": cost_usd})
+            ckpt.record("TRACKING_DONE", {"tracking_id": tracking_id})
+            ckpt.record(
+                "SAVE_DONE",
+                {
+                    "saved": False,
+                    "tracking_id": tracking_id,
+                    "reason": "premature_termination",
+                },
+            )
+            log.warning(
+                "[FM-3.1] Premature termination path returned early with tracking_id=%s",
+                tracking_id,
+            )
+            log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
+            return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
+
+        ckpt.record("QUOTE_DONE",   {"cost_usd": cost_usd})
+        carrier_data = {"carrier": carrier, "service_level": service_level}
+        if fi.active_fault() == "FM_2_5":
+            carrier_data["ignored_downstream_quote"] = True
+            carrier_data["quoted_cost_usd"] = cost_usd
+            carrier_data["used_cost_usd"] = 4.99
+            carrier_data["silent_absorption"] = carrier == "UPS"
+        if fi.active_fault() == "BL_VENDOR_NEGOTIATION":
+            carrier_data["injected_carrier"] = "PremiumExpress"
+            carrier_data["injected_service"] = "overnight"
+            carrier_data["silent_absorption"] = carrier != "PremiumExpress"
+        ckpt.record("CARRIER_DONE", carrier_data)
+        ckpt.record("TRACKING_DONE", {"tracking_id": tracking_id})
+
+        # BL-CUSTOMER_ESCALATION: flag high-risk orders before saving
+        final_meta = fi.maybe_inject_escalation_flag({"tracking_id": tracking_id, "carrier": carrier})
+        ckpt.record("ESCALATION_CHECK", {"escalation_required": final_meta.get("escalation_required", False)})
 
         # ── Save shipment to MongoDB ───────────────────────────────────────────
-        await save_shipment(
-            address       = address,
-            items         = items,
-            cost_usd      = cost_usd,
-            carrier       = carrier,
-            service_level = service_level,
-            tracking_id   = tracking_id,
-        )
+        # BL-SHIPMENT_LOST: fault may silently skip this save
+        if capture_partial_trace:
+            ckpt.record("SAVE_DONE", {"saved": False, "tracking_id": tracking_id, "reason": "benchmark_mode"})
+        elif not fi.should_skip_shipment_save():
+            await save_shipment(
+                address       = address,
+                items         = items,
+                cost_usd      = cost_usd,
+                carrier       = carrier,
+                service_level = service_level,
+                tracking_id   = tracking_id,
+            )
+            ckpt.record("SAVE_DONE", {"saved": True, "tracking_id": tracking_id})
+        else:
+            ckpt.record("SAVE_DONE", {"saved": False, "tracking_id": tracking_id})
 
-        return {"tracking_id": tracking_id}
+        log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
+        return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
