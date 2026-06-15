@@ -55,6 +55,7 @@ Usage:
 
 import os
 import logging
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -162,7 +163,7 @@ def maybe_ignore_quote_for_carrier(cost_usd: float) -> float:
 
 # ── FM-3.1: Premature Termination ────────────────────────────────────────────
 
-def maybe_inject_early_termination(iteration: int, scratchpad: str) -> str | None:
+def maybe_inject_early_termination(iteration: int, scratchpad: str) -> Optional[str]:
     """
     FM-3.1 — After the first tool observation, inject a fake Final Answer so
     the ReAct loop terminates before carrier selection and tracking ID steps.
