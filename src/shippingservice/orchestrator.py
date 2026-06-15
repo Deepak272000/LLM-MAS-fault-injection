@@ -149,6 +149,8 @@ log = logging.getLogger(__name__)
 
 MAX_ITERATIONS = 8
 MAX_TOKENS     = 512
+LLAMA_CONNECT_TIMEOUT = int(os.getenv("LLAMA_CONNECT_TIMEOUT", "60"))
+LLAMA_READ_TIMEOUT    = int(os.getenv("LLAMA_READ_TIMEOUT", "300"))
 
 
 TOOL_DESCRIPTIONS = """You have access to these tools:
@@ -223,7 +225,7 @@ class ShippingOrchestrator:
             resp = requests.post(
                 f"{self.base_url}/chat/completions",
                 json=payload,
-                timeout=(60, 120),
+                timeout=(LLAMA_CONNECT_TIMEOUT, LLAMA_READ_TIMEOUT),
                 headers={"Content-Type": "application/json"},
             )
             resp.raise_for_status()
