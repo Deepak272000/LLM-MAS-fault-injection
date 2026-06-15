@@ -147,8 +147,8 @@ class LKWCheckpoint:
 log = logging.getLogger(__name__)
 
 
-MAX_ITERATIONS = 8
-MAX_TOKENS     = 512
+MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "8"))
+MAX_TOKENS     = int(os.getenv("MAX_TOKENS", "512"))
 LLAMA_CONNECT_TIMEOUT = int(os.getenv("LLAMA_CONNECT_TIMEOUT", "60"))
 LLAMA_READ_TIMEOUT    = int(os.getenv("LLAMA_READ_TIMEOUT", "300"))
 
