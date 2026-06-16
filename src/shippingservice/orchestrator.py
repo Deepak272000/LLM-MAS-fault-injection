@@ -254,12 +254,42 @@ class ShippingOrchestrator:
     # ── ReAct parser ──────────────────────────────────────────────────────────
 
     def _parse_react_output(self, text: str):
-        fa_match = re.search(r"Final Answer:\s*(\{.*\})", text, re.DOTALL)
-        if fa_match:
-            return ("final", fa_match.group(1).strip(), None)
+        fa_pos = text.find("Final Answer:")
+        if fa_pos != -1:
+            fa_text = text[fa_pos + len("Final Answer:"):]
+            fence_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", fa_text)
+            if fence_match:
+                return ("final", fence_match.group(1).strip(), None)
+
+            brace_start = fa_text.find("{")
+            if brace_start != -1:
+                start = brace_start
+                depth, end = 0, start
+                for i, ch in enumerate(fa_text[start:], start):
+                    if ch == "{":
+                        depth += 1
+                    elif ch == "}":
+                        depth -= 1
+                        if depth == 0:
+                            end = i + 1
+                            break
+                if end > start:
+                    return ("final", fa_text[start:end].strip(), None)
 
         action_match = re.search(r"Action:\s*(\w+)", text)
-        ai_start     = re.search(r"Action Input:\s*(\{)", text)
+        ai_start = re.search(r"Action Input:\s*(\{)", text)
+        if ai_start is None:
+            ai_start = re.search(r"\bInput:\s*(\{)", text)
+
+        if action_match and ai_start is None:
+            fenced_ai = re.search(r"Action Input:\s*```(?:json)?\s*(\{[\s\S]*?\})\s*```", text)
+            if fenced_ai:
+                tool_name = action_match.group(1).strip()
+                try:
+                    tool_input = json.loads(fenced_ai.group(1))
+                except json.JSONDecodeError:
+                    tool_input = {}
+                return ("action", tool_name, tool_input)
 
         if action_match and ai_start:
             tool_name = action_match.group(1).strip()
@@ -359,7 +389,11 @@ class ShippingOrchestrator:
                 log.debug(f"Appended observation: {observation.strip()}")
             else:
                 log.warning(f"Unexpected Llama output (iteration {iteration+1}): {value[:200]}")
-                scratchpad += "\nThought: I need to use a tool or provide a Final Answer.\n"
+                scratchpad += (
+                    "\nObservation: FORMAT_ERROR. Respond using exactly one of:\n"
+                    "1) Action: <tool_name>\\nAction Input: <valid JSON>\n"
+                    "2) Final Answer: <valid JSON>\n"
+                )
 
         raise RuntimeError(
             f"ReAct loop exceeded {MAX_ITERATIONS} iterations without a Final Answer"

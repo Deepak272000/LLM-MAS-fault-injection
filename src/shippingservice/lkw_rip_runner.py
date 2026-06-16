@@ -73,6 +73,9 @@ def selected_faults() -> list[str]:
     if not filtered:
         print(f"[LKW-RIP Runner] WARNING: FAULTS_TO_TEST={raw!r} did not match defaults; using full set")
         return FAULTS_TO_TEST
+    if "NONE" not in filtered:
+        print("[LKW-RIP Runner] INFO: adding baseline fault mode NONE for comparison")
+        filtered.insert(0, "NONE")
     return filtered
 
 

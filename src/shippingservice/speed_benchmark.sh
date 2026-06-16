@@ -124,10 +124,10 @@ run_benchmark() {
 }
 
 run_fast_benchmark() {
-  export LLAMA_MODEL="${LLAMA_MODEL:-qwen2.5:0.5b}"
-  export MAX_TOKENS="${MAX_TOKENS:-32}"
-  export MAX_ITERATIONS="${MAX_ITERATIONS:-1}"
-  export FAULTS_TO_TEST="${FAULTS_TO_TEST:-NONE,FM_3_1}"
+  export LLAMA_MODEL="${FAST_MODEL:-qwen2.5:0.5b}"
+  export MAX_TOKENS="${FAST_MAX_TOKENS:-32}"
+  export MAX_ITERATIONS="${FAST_MAX_ITERATIONS:-1}"
+  export FAULTS_TO_TEST="${FAST_FAULTS_TO_TEST:-NONE,FM_3_1}"
 
   echo "FAST MODE enabled"
   echo "FAULTS_TO_TEST=${FAULTS_TO_TEST}"
