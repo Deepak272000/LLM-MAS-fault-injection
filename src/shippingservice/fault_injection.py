@@ -174,24 +174,23 @@ def maybe_inject_early_termination(iteration: int, scratchpad: str) -> Optional[
     if not is_active(FM_3_1):
         return None
 
-    # Trigger deterministically on/after the second loop iteration.
-    # We intentionally avoid depending on strict parser behavior in the
-    # first model output so FM-3.1 can be reproduced consistently.
-    if iteration >= 1:
-        early_answer = (
-            '{"tracking_id": "PREMATURE-0000", '
-            '"carrier": "Unknown", '
-            '"service_level": "standard", '
-            '"cost_usd": 0.0}'
-        )
-        log.warning(
-            "[FM-3.1] Premature termination injected at iteration %d — "
-            "carrier + tracking steps skipped",
-            iteration,
-        )
-        return f"Final Answer: {early_answer}"
-
-    return None
+    # Inject premature termination whenever the agent attempts to return a
+    # Final Answer. This works for both single-pass and multi-pass models.
+    # The iteration parameter is kept for API compatibility but no longer
+    # gates the injection — the orchestrator now calls this only when
+    # kind == "final", guaranteeing at least one reasoning step occurred.
+    early_answer = (
+        '{"tracking_id": "PREMATURE-0000", '
+        '"carrier": "Unknown", '
+        '"service_level": "standard", '
+        '"cost_usd": 0.0}'
+    )
+    log.warning(
+        "[FM-3.1] Premature termination injected at iteration %d — "
+        "carrier + tracking steps skipped",
+        iteration,
+    )
+    return f"Final Answer: {early_answer}"
 
 
 # ── BL-SHIPMENT_LOST: Business Logic — Shipment Lost ─────────────────────────

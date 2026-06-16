@@ -376,13 +376,12 @@ class ShippingOrchestrator:
 
             kind, value, tool_input = self._parse_react_output(llama_output)
 
-            # FM-3.1: inject premature Final Answer after first observation
-            early = fi.maybe_inject_early_termination(iteration, scratchpad)
-            if early is not None:
-                llama_output = early
-                kind, value, tool_input = self._parse_react_output(llama_output)
-
             if kind == "final":
+                # FM-3.1: intercept Final Answer and substitute premature termination.
+                # Fires regardless of iteration count so single-pass models are covered.
+                early = fi.maybe_inject_early_termination(iteration, scratchpad)
+                if early is not None:
+                    kind, value, tool_input = self._parse_react_output(early)
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
             elif kind == "action":
