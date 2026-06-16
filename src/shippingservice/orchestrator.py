@@ -156,44 +156,25 @@ LLAMA_CALL_RETRIES    = int(os.getenv("LLAMA_CALL_RETRIES", "1"))
 LLAMA_RETRY_BACKOFF   = float(os.getenv("LLAMA_RETRY_BACKOFF", "2"))
 
 
-TOOL_DESCRIPTIONS = """You have access to these tools:
+TOOL_DESCRIPTIONS = """Tools available:
+1. get_shipping_quote — estimates USD shipping cost
+   Input: {"address":{"city":str,"country":str,"state":str,"zip_code":int},"items":[{"product_id":str,"quantity":int}]}
+2. select_carrier — picks best carrier
+   Input: {"address":{"country":str,"state":str,"zip_code":int},"cost_usd":float,"item_count":int}
+3. generate_tracking_id — generates tracking ID
+   Input: {"carrier":str,"address":{"city":str,"country":str},"item_count":int}
 
-1. get_shipping_quote
-   Description: Estimates the USD shipping cost for a destination address and cart items.
-   Input JSON schema:
-     { "address": {"city": str, "country": str, "state": str, "zip_code": int},
-       "items": [{"product_id": str, "quantity": int}] }
-   Returns: {"cost_usd": float, "breakdown": {...}}
-
-2. select_carrier
-   Description: Selects the best shipping carrier given the destination, cost, and item count.
-   Input JSON schema:
-     { "address": {"country": str, "state": str, "zip_code": int},
-       "cost_usd": float,
-       "item_count": int }
-   Returns: {"carrier": str, "service_level": str, "estimated_delivery_days": int, "reason": str}
-
-3. generate_tracking_id
-   Description: Generates a unique carrier-formatted tracking ID and registers the shipment.
-   Input JSON schema:
-     { "carrier": str, "address": {"city": str, "country": str}, "item_count": int }
-   Returns: {"tracking_id": str, "carrier": str, "registered": bool}
-
-Use the following format EXACTLY — no deviations:
-
-Thought: <your reasoning about what to do next>
-Action: <tool name, one of: get_shipping_quote | select_carrier | generate_tracking_id>
-Action Input: <valid JSON matching the tool's input schema>
-
-When you have the final answer, output:
-Final Answer: <valid JSON with the result>
+Format (use EXACTLY):
+Thought: <brief reason>
+Action: <tool name>
+Action Input: <JSON>
+...or...
+Final Answer: <JSON>
 """
 
 REACT_SYSTEM_PROMPT = (
-    "You are a shipping logistics agent. "
-    "Solve tasks step-by-step. "
-    "Always use Thought/Action/Action Input/Final Answer format exactly. "
-    "Keep Thought sections under 2 sentences. Do not explain tool schemas."
+    "You are a shipping agent. Use tools step by step. "
+    "Output only: Thought/Action/Action Input blocks, then Final Answer. No extra text."
 )
 
 
@@ -224,7 +205,7 @@ class ShippingOrchestrator:
         if stop:
             payload["stop"] = stop
 
-        last_timeout: Exception | None = None
+        last_timeout = None  # type: Optional[Exception]
         for attempt in range(LLAMA_CALL_RETRIES + 1):
             try:
                 resp = requests.post(
@@ -493,16 +474,9 @@ class ShippingOrchestrator:
         ckpt.record("TASK_START", {"address": address, "item_count": item_count})
 
         base_task = (
-            f"Task: Fulfill a shipping order step by step.\n"
-            f"Address: {json.dumps(address)}\n"
-            f"Items: {json.dumps(items)}\n"
-            f"Total items: {item_count}\n\n"
-            f"You MUST call these tools in order:\n"
-            f"1. get_shipping_quote — to get the cost\n"
-            f"2. select_carrier — using the cost and item count\n"
-            f"3. generate_tracking_id — using the chosen carrier\n"
-            f'Then return: Final Answer: {{"tracking_id": "<id>", "carrier": "<name>", '
-            f'"service_level": "<level>", "cost_usd": <number>}}'
+            f"Ship order. Address: {json.dumps(address)} Items: {json.dumps(items)} Count: {item_count}.\n"
+            f"Call in order: 1) get_shipping_quote 2) select_carrier 3) generate_tracking_id\n"
+            f'Final Answer: {{"tracking_id":"<id>","carrier":"<name>","service_level":"<level>","cost_usd":<number>}}'
         )
         # FM-1.2: corrupt task spec before sending to LLM
         task = fi.corrupt_task_spec(base_task)
