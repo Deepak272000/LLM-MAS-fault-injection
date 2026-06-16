@@ -4,11 +4,17 @@ set -euo pipefail
 # SPEED helper for running shippingservice LKW/RIP benchmarks reliably.
 # Usage:
 #   ./speed_benchmark.sh run
+#   ./speed_benchmark.sh fast
 #   ./speed_benchmark.sh status
 #   ./speed_benchmark.sh stop
 #   ./speed_benchmark.sh tail
 
 CMD="${1:-run}"
+MODE="full"
+
+if [[ "${CMD}" == "fast" ]]; then
+  MODE="fast"
+fi
 
 HOSTNAME_NOW="$(hostname || true)"
 SPEED_ROOT="/speed-scratch/${USER}"
@@ -117,6 +123,17 @@ run_benchmark() {
   echo "Done. Tail log with: ./speed_benchmark.sh tail"
 }
 
+run_fast_benchmark() {
+  export LLAMA_MODEL="${LLAMA_MODEL:-qwen2.5:0.5b}"
+  export MAX_TOKENS="${MAX_TOKENS:-32}"
+  export MAX_ITERATIONS="${MAX_ITERATIONS:-1}"
+  export FAULTS_TO_TEST="${FAULTS_TO_TEST:-NONE,FM_3_1}"
+
+  echo "FAST MODE enabled"
+  echo "FAULTS_TO_TEST=${FAULTS_TO_TEST}"
+  run_benchmark
+}
+
 show_status() {
   echo "Host: ${HOSTNAME_NOW}"
   echo "OLLAMA_HOST=${OLLAMA_HOST}"
@@ -151,6 +168,9 @@ case "${CMD}" in
   run)
     run_benchmark
     ;;
+  fast)
+    run_fast_benchmark
+    ;;
   status)
     show_status
     ;;
@@ -162,7 +182,7 @@ case "${CMD}" in
     ;;
   *)
     echo "Unknown command: ${CMD}" >&2
-    echo "Usage: $0 {run|status|stop|tail}" >&2
+    echo "Usage: $0 {run|fast|status|stop|tail}" >&2
     exit 2
     ;;
 esac

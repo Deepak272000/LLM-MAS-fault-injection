@@ -63,6 +63,19 @@ FAULTS_TO_TEST = [
 ]
 
 
+def selected_faults() -> list[str]:
+    raw = os.getenv("FAULTS_TO_TEST", "").strip()
+    if not raw:
+        return FAULTS_TO_TEST
+
+    requested = [item.strip() for item in raw.split(",") if item.strip()]
+    filtered = [fault for fault in FAULTS_TO_TEST if fault in requested]
+    if not filtered:
+        print(f"[LKW-RIP Runner] WARNING: FAULTS_TO_TEST={raw!r} did not match defaults; using full set")
+        return FAULTS_TO_TEST
+    return filtered
+
+
 # ── Run a single experiment ───────────────────────────────────────────────────
 
 async def run_experiment(fault_mode: str) -> dict:
@@ -158,7 +171,10 @@ async def main():
     print("\n[LKW-RIP Runner] Starting experiments...\n")
     results = []
 
-    for fault in FAULTS_TO_TEST:
+    faults = selected_faults()
+    print(f"[LKW-RIP Runner] Selected faults: {faults}\n")
+
+    for fault in faults:
         print(f"  Running: FAULT_MODE={fault} ...")
         result = await run_experiment(fault)
         results.append(result)
