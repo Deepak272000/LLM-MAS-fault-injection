@@ -103,7 +103,7 @@ async def run_experiment(fault_mode: str) -> dict:
     try:
         result = await orchestrator.ship_order(TEST_ADDRESS, TEST_ITEMS, capture_partial_trace=True)
         lkw    = result.get("_lkw", {})
-        error  = None
+        error  = result.get("error")
     except Exception as exc:
         lkw   = {}
         error = str(exc)

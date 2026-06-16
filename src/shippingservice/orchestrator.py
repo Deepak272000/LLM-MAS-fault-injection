@@ -277,12 +277,12 @@ class ShippingOrchestrator:
                     return ("final", fa_text[start:end].strip(), None)
 
         action_match = re.search(r"Action:\s*(\w+)", text)
-        ai_start = re.search(r"Action Input:\s*(\{)", text)
+        ai_start = re.search(r"Action Input\s*:?\s*(\{)", text)
         if ai_start is None:
             ai_start = re.search(r"\bInput:\s*(\{)", text)
 
         if action_match and ai_start is None:
-            fenced_ai = re.search(r"Action Input:\s*```(?:json)?\s*(\{[\s\S]*?\})\s*```", text)
+            fenced_ai = re.search(r"Action Input\s*:?\s*```(?:json)?\s*(\{[\s\S]*?\})\s*```", text)
             if fenced_ai:
                 tool_name = action_match.group(1).strip()
                 try:
