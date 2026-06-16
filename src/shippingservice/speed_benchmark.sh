@@ -4,6 +4,7 @@ set -euo pipefail
 # SPEED helper for running shippingservice LKW/RIP benchmarks reliably.
 # Usage:
 #   ./speed_benchmark.sh run
+#   ./speed_benchmark.sh full
 #   ./speed_benchmark.sh fast
 #   ./speed_benchmark.sh status
 #   ./speed_benchmark.sh stop
@@ -104,7 +105,9 @@ run_benchmark() {
   echo "Log: ${run_log}"
   echo "Model: ${LLAMA_MODEL}"
   echo "LLAMA_BASE_URL: ${LLAMA_BASE_URL}"
+  echo "LLAMA_CONNECT_TIMEOUT=${LLAMA_CONNECT_TIMEOUT} LLAMA_READ_TIMEOUT=${LLAMA_READ_TIMEOUT}"
   echo "MAX_TOKENS=${MAX_TOKENS} MAX_ITERATIONS=${MAX_ITERATIONS}"
+  echo "FAULTS_TO_TEST=${FAULTS_TO_TEST:-<all defaults from runner>}"
 
   (
     cd "${WORKDIR}"
@@ -121,6 +124,24 @@ run_benchmark() {
   fi
 
   echo "Done. Tail log with: ./speed_benchmark.sh tail"
+}
+
+run_full_benchmark() {
+  export LLAMA_MODEL="${FULL_MODEL:-llama3.2:1b}"
+  export MAX_TOKENS="${FULL_MAX_TOKENS:-192}"
+  export MAX_ITERATIONS="${FULL_MAX_ITERATIONS:-4}"
+  export LLAMA_CONNECT_TIMEOUT="${FULL_CONNECT_TIMEOUT:-60}"
+  export LLAMA_READ_TIMEOUT="${FULL_READ_TIMEOUT:-1200}"
+
+  # Full mode should use the runner's complete default fault list unless overridden.
+  if [[ -n "${FULL_FAULTS_TO_TEST:-}" ]]; then
+    export FAULTS_TO_TEST="${FULL_FAULTS_TO_TEST}"
+  else
+    unset FAULTS_TO_TEST || true
+  fi
+
+  echo "FULL MODE enabled"
+  run_benchmark
 }
 
 run_fast_benchmark() {
@@ -166,7 +187,10 @@ follow_latest_log() {
 
 case "${CMD}" in
   run)
-    run_benchmark
+    run_full_benchmark
+    ;;
+  full)
+    run_full_benchmark
     ;;
   fast)
     run_fast_benchmark
@@ -182,7 +206,7 @@ case "${CMD}" in
     ;;
   *)
     echo "Unknown command: ${CMD}" >&2
-    echo "Usage: $0 {run|fast|status|stop|tail}" >&2
+    echo "Usage: $0 {run|full|fast|status|stop|tail}" >&2
     exit 2
     ;;
 esac
