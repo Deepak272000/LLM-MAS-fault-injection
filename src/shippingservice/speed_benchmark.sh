@@ -90,6 +90,12 @@ start_ollama_if_needed() {
     echo "Pulling model ${LLAMA_MODEL} ..."
     "${OLLAMA_BIN}" pull "${LLAMA_MODEL}"
   fi
+
+  echo "Warming up model ${LLAMA_MODEL} ..."
+  curl -s --max-time 180 "http://${OLLAMA_HOST}/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"${LLAMA_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK\"}],\"max_tokens\":8,\"temperature\":0}" \
+    >/dev/null 2>&1 || echo "WARN: warmup request timed out; continuing anyway"
 }
 
 run_benchmark() {
@@ -132,6 +138,8 @@ run_full_benchmark() {
   export MAX_ITERATIONS="${FULL_MAX_ITERATIONS:-4}"
   export LLAMA_CONNECT_TIMEOUT="${FULL_CONNECT_TIMEOUT:-60}"
   export LLAMA_READ_TIMEOUT="${FULL_READ_TIMEOUT:-1200}"
+  export LLAMA_CALL_RETRIES="${FULL_CALL_RETRIES:-1}"
+  export LLAMA_RETRY_BACKOFF="${FULL_RETRY_BACKOFF:-2}"
 
   # Full mode should use the runner's complete default fault list unless overridden.
   if [[ -n "${FULL_FAULTS_TO_TEST:-}" ]]; then

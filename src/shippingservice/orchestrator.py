@@ -31,6 +31,7 @@ import json
 import logging
 import os
 import re
+import time
 import requests
 from datetime import datetime, timezone
 
@@ -151,6 +152,8 @@ MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "8"))
 MAX_TOKENS     = int(os.getenv("MAX_TOKENS", "512"))
 LLAMA_CONNECT_TIMEOUT = int(os.getenv("LLAMA_CONNECT_TIMEOUT", "60"))
 LLAMA_READ_TIMEOUT    = int(os.getenv("LLAMA_READ_TIMEOUT", "300"))
+LLAMA_CALL_RETRIES    = int(os.getenv("LLAMA_CALL_RETRIES", "1"))
+LLAMA_RETRY_BACKOFF   = float(os.getenv("LLAMA_RETRY_BACKOFF", "2"))
 
 
 TOOL_DESCRIPTIONS = """You have access to these tools:
@@ -221,35 +224,54 @@ class ShippingOrchestrator:
         if stop:
             payload["stop"] = stop
 
-        try:
-            resp = requests.post(
-                f"{self.base_url}/chat/completions",
-                json=payload,
-                timeout=(LLAMA_CONNECT_TIMEOUT, LLAMA_READ_TIMEOUT),
-                headers={"Content-Type": "application/json"},
-            )
-            resp.raise_for_status()
-            data    = resp.json()
-            content = data["choices"][0]["message"]["content"].strip()
+        last_timeout: Exception | None = None
+        for attempt in range(LLAMA_CALL_RETRIES + 1):
+            try:
+                resp = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    timeout=(LLAMA_CONNECT_TIMEOUT, LLAMA_READ_TIMEOUT),
+                    headers={"Content-Type": "application/json"},
+                )
+                resp.raise_for_status()
+                data    = resp.json()
+                content = data["choices"][0]["message"]["content"].strip()
 
-            usage         = data.get("usage", {})
-            input_tokens  = usage.get("prompt_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0)
-            total_tokens  = usage.get("total_tokens", input_tokens + output_tokens)
+                usage         = data.get("usage", {})
+                input_tokens  = usage.get("prompt_tokens", 0)
+                output_tokens = usage.get("completion_tokens", 0)
+                total_tokens  = usage.get("total_tokens", input_tokens + output_tokens)
 
-            print(f"TOKEN_METRICS input={input_tokens} output={output_tokens} total={total_tokens}")
+                print(f"TOKEN_METRICS input={input_tokens} output={output_tokens} total={total_tokens}")
 
-            with open("token_log.txt", "a") as f:
-                f.write(f"{total_tokens}\n")
+                with open("token_log.txt", "a") as f:
+                    f.write(f"{total_tokens}\n")
 
-            return content
-        except requests.exceptions.ConnectionError as e:
-            raise RuntimeError(
-                f"Cannot reach Llama endpoint at {self.base_url}. "
-                f"Ensure the llama-service pod is running. Error: {e}"
-            )
-        except requests.exceptions.HTTPError as e:
-            raise RuntimeError(f"Llama API HTTP error: {e} — {resp.text[:200]}")
+                return content
+            except requests.exceptions.ReadTimeout as e:
+                last_timeout = e
+                if attempt < LLAMA_CALL_RETRIES:
+                    wait_s = LLAMA_RETRY_BACKOFF * (attempt + 1)
+                    log.warning(
+                        "Llama read timeout (attempt %d/%d). Retrying in %.1fs...",
+                        attempt + 1,
+                        LLAMA_CALL_RETRIES + 1,
+                        wait_s,
+                    )
+                    time.sleep(wait_s)
+                    continue
+                raise RuntimeError(f"Llama read timeout after {LLAMA_CALL_RETRIES + 1} attempt(s): {e}")
+            except requests.exceptions.ConnectionError as e:
+                raise RuntimeError(
+                    f"Cannot reach Llama endpoint at {self.base_url}. "
+                    f"Ensure the llama-service pod is running. Error: {e}"
+                )
+            except requests.exceptions.HTTPError as e:
+                raise RuntimeError(f"Llama API HTTP error: {e} — {resp.text[:200]}")
+
+        if last_timeout is not None:
+            raise RuntimeError(f"Llama read timeout: {last_timeout}")
+        raise RuntimeError("Llama call failed unexpectedly")
 
     # ── ReAct parser ──────────────────────────────────────────────────────────
 
