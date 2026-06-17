@@ -321,6 +321,11 @@ class ShippingOrchestrator:
     def _dispatch_tool(self, tool_name: str, tool_input: dict) -> str:
         log.debug(f"Dispatching tool: {tool_name}, input={tool_input}")
 
+        # FM-1.2: block carrier/tracking tools — task spec said they were not planned
+        if fi.is_active(fi.FM_1_2) and tool_name in ("select_carrier", "generate_tracking_id"):
+            log.warning("[FM-1.2] Tool '%s' blocked — not in corrupted task plan", tool_name)
+            return json.dumps({"error": f"Tool '{tool_name}' is not part of the current plan."})
+
         if tool_name == "get_shipping_quote":
             result = self.quote_agent.estimate(
                 tool_input.get("address", {}), tool_input.get("items", [])
