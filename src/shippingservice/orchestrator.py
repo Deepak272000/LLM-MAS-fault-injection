@@ -596,8 +596,11 @@ class ShippingOrchestrator:
         ckpt.record("ESCALATION_CHECK", {"escalation_required": final_meta.get("escalation_required", False)})
 
         # ── Save shipment to MongoDB ───────────────────────────────────────────
-        # BL-SHIPMENT_LOST: fault may silently skip this save
-        if capture_partial_trace:
+        # BL-SHIPMENT_LOST: check fault before benchmark branch so step is skipped
+        if fi.should_skip_shipment_save():
+            # Intentionally do NOT record SAVE_DONE — makes it appear in Steps Lost
+            log.warning("[BL-SHIPMENT_LOST] Save step skipped — SAVE_DONE will be absent from trace")
+        elif capture_partial_trace:
             ckpt.record("SAVE_DONE", {"saved": False, "tracking_id": tracking_id, "reason": "benchmark_mode"})
         elif not fi.should_skip_shipment_save():
             await save_shipment(
