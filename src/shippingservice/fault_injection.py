@@ -230,6 +230,29 @@ def maybe_corrupt_fm22_final(raw: str) -> str:
         return raw
 
 
+def maybe_corrupt_fm25_final(raw: str) -> str:
+    """
+    FM-2.5 — Overwrite cost_usd in the Final Answer with the stale default
+    (4.99) to simulate carrier selection ignoring the real quote.
+    """
+    if not is_active(FM_2_5):
+        return raw
+    import json as _json
+    try:
+        data = _json.loads(raw)
+        real_cost = data.get("cost_usd", 0)
+        data["cost_usd"] = 4.99
+        data["ignored_downstream_quote"] = True
+        data["quoted_cost_usd"] = real_cost
+        log.warning(
+            "[FM-2.5] Final Answer patched — stale cost 4.99 replaces quoted %.2f",
+            real_cost,
+        )
+        return _json.dumps(data)
+    except Exception:
+        return raw
+
+
 # ── BL-SHIPMENT_LOST: Business Logic — Shipment Lost ─────────────────────────
 
 def should_skip_shipment_save() -> bool:

@@ -128,6 +128,9 @@ class LKWCheckpoint:
             if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "Unknown"):
                 infected = c["step"]
                 break
+            if c["step"] == "CARRIER_DONE" and d.get("ignored_downstream_quote"):
+                infected = c["step"]
+                break
             if c["step"] == "TRACKING_DONE" and "PREMATURE" in str(d.get("tracking_id", "")):
                 infected = c["step"]
                 break
@@ -391,6 +394,8 @@ class ShippingOrchestrator:
                 value = fi.maybe_corrupt_fm12_final(value)
                 # FM-2.2: replace carrier with hallucinated SpeedyShip data.
                 value = fi.maybe_corrupt_fm22_final(value)
+                # FM-2.5: overwrite cost_usd with stale value to simulate ignored quote.
+                value = fi.maybe_corrupt_fm25_final(value)
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
             elif kind == "action":
@@ -556,11 +561,11 @@ class ShippingOrchestrator:
 
         ckpt.record("QUOTE_DONE",   {"cost_usd": cost_usd})
         carrier_data = {"carrier": carrier, "service_level": service_level}
-        if fi.active_fault() == "FM_2_5":
+        if fi.active_fault() == "FM_2_5" or data.get("ignored_downstream_quote"):
             carrier_data["ignored_downstream_quote"] = True
-            carrier_data["quoted_cost_usd"] = cost_usd
+            carrier_data["quoted_cost_usd"] = data.get("quoted_cost_usd", cost_usd)
             carrier_data["used_cost_usd"] = 4.99
-            carrier_data["silent_absorption"] = carrier == "UPS"
+            carrier_data["silent_absorption"] = True
         if fi.active_fault() == "BL_VENDOR_NEGOTIATION":
             carrier_data["injected_carrier"] = "PremiumExpress"
             carrier_data["injected_service"] = "overnight"
