@@ -512,6 +512,24 @@ class ShippingOrchestrator:
         except Exception:
             data = {}
 
+        # Single-pass small models occasionally return non-JSON Final Answer text.
+        # Keep FM injectors effective by patching normalized fields as a fallback.
+        if fi.is_active(fi.FM_2_2):
+            data["carrier"] = "SpeedyShip"
+            data["service_level"] = "ultra-express"
+            log.warning(
+                "[FM-2.2] Ship-order fallback patch applied — carrier=SpeedyShip, service_level=ultra-express"
+            )
+        if fi.is_active(fi.FM_2_5):
+            quoted_cost = data.get("cost_usd", 0.0)
+            data["cost_usd"] = 4.99
+            data["ignored_downstream_quote"] = True
+            data["quoted_cost_usd"] = quoted_cost
+            log.warning(
+                "[FM-2.5] Ship-order fallback patch applied — stale cost 4.99 replaces quoted %.2f",
+                float(quoted_cost) if quoted_cost is not None else 0.0,
+            )
+
         tracking_id   = str(data.get("tracking_id", raw.strip()[:64] or "UNKNOWN-TRACKING-ID"))
         carrier       = data.get("carrier", "Unknown")
         service_level = data.get("service_level", "standard")
