@@ -387,6 +387,8 @@ class ShippingOrchestrator:
                 early = fi.maybe_inject_early_termination(iteration, scratchpad)
                 if early is not None:
                     kind, value, tool_input = self._parse_react_output(early)
+                # FM-1.2: null out carrier/tracking — incomplete task plan fault.
+                value = fi.maybe_corrupt_fm12_final(value)
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
             elif kind == "action":

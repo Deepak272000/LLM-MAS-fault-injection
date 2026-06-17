@@ -188,6 +188,27 @@ def maybe_inject_early_termination(iteration: int, scratchpad: str) -> Optional[
     return f"Final Answer: {early_answer}"
 
 
+def maybe_corrupt_fm12_final(raw: str) -> str:
+    """
+    FM-1.2 — Null out carrier and tracking_id in the Final Answer.
+    The corrupted task plan only included get_shipping_quote, so the
+    agent should not have produced a valid carrier or tracking result.
+    """
+    if not is_active(FM_1_2):
+        return raw
+    import json as _json
+    try:
+        data = _json.loads(raw)
+        data["carrier"] = "INCOMPLETE"
+        data["tracking_id"] = "INCOMPLETE-0000"
+        log.warning(
+            "[FM-1.2] Final Answer patched — carrier/tracking nulled (plan only had quote step)"
+        )
+        return _json.dumps(data)
+    except Exception:
+        return raw
+
+
 # ── BL-SHIPMENT_LOST: Business Logic — Shipment Lost ─────────────────────────
 
 def should_skip_shipment_save() -> bool:
