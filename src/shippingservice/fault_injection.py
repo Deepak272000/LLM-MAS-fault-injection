@@ -56,6 +56,7 @@ Usage:
 import os
 import logging
 from typing import Optional
+import json
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +77,44 @@ BL_COMPLIANCE_AMBIGUITY = "BL_COMPLIANCE_AMBIGUITY"
 
 def active_fault() -> str:
     return FAULT_MODE
+
+
+def _extract_final_json(raw: str) -> Optional[dict]:
+    """Parse a JSON object from raw final-answer text.
+
+    Models occasionally return wrapped text/fences despite parser guards.
+    This helper first tries direct JSON decoding, then extracts the first
+    balanced {...} object and decodes it.
+    """
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        pass
+
+    start = raw.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    end = -1
+    for i, ch in enumerate(raw[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
+    if end <= start:
+        return None
+
+    try:
+        data = json.loads(raw[start:end])
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
 
 
 def is_active(fault: str) -> bool:
@@ -196,17 +235,16 @@ def maybe_corrupt_fm12_final(raw: str) -> str:
     """
     if not is_active(FM_1_2):
         return raw
-    import json as _json
-    try:
-        data = _json.loads(raw)
-        data["carrier"] = "INCOMPLETE"
-        data["tracking_id"] = "INCOMPLETE-0000"
-        log.warning(
-            "[FM-1.2] Final Answer patched — carrier/tracking nulled (plan only had quote step)"
-        )
-        return _json.dumps(data)
-    except Exception:
+    data = _extract_final_json(raw)
+    if data is None:
+        log.warning("[FM-1.2] Final Answer patch skipped — JSON payload not found")
         return raw
+    data["carrier"] = "INCOMPLETE"
+    data["tracking_id"] = "INCOMPLETE-0000"
+    log.warning(
+        "[FM-1.2] Final Answer patched — carrier/tracking nulled (plan only had quote step)"
+    )
+    return json.dumps(data)
 
 
 def maybe_corrupt_fm22_final(raw: str) -> str:
@@ -217,17 +255,16 @@ def maybe_corrupt_fm22_final(raw: str) -> str:
     """
     if not is_active(FM_2_2):
         return raw
-    import json as _json
-    try:
-        data = _json.loads(raw)
-        data["carrier"] = "SpeedyShip"
-        data["service_level"] = "ultra-express"
-        log.warning(
-            "[FM-2.2] Final Answer patched — hallucinated carrier=SpeedyShip, service_level=ultra-express"
-        )
-        return _json.dumps(data)
-    except Exception:
+    data = _extract_final_json(raw)
+    if data is None:
+        log.warning("[FM-2.2] Final Answer patch skipped — JSON payload not found")
         return raw
+    data["carrier"] = "SpeedyShip"
+    data["service_level"] = "ultra-express"
+    log.warning(
+        "[FM-2.2] Final Answer patched — hallucinated carrier=SpeedyShip, service_level=ultra-express"
+    )
+    return json.dumps(data)
 
 
 def maybe_corrupt_fm25_final(raw: str) -> str:
@@ -237,20 +274,19 @@ def maybe_corrupt_fm25_final(raw: str) -> str:
     """
     if not is_active(FM_2_5):
         return raw
-    import json as _json
-    try:
-        data = _json.loads(raw)
-        real_cost = data.get("cost_usd", 0)
-        data["cost_usd"] = 4.99
-        data["ignored_downstream_quote"] = True
-        data["quoted_cost_usd"] = real_cost
-        log.warning(
-            "[FM-2.5] Final Answer patched — stale cost 4.99 replaces quoted %.2f",
-            real_cost,
-        )
-        return _json.dumps(data)
-    except Exception:
+    data = _extract_final_json(raw)
+    if data is None:
+        log.warning("[FM-2.5] Final Answer patch skipped — JSON payload not found")
         return raw
+    real_cost = data.get("cost_usd", 0)
+    data["cost_usd"] = 4.99
+    data["ignored_downstream_quote"] = True
+    data["quoted_cost_usd"] = real_cost
+    log.warning(
+        "[FM-2.5] Final Answer patched — stale cost 4.99 replaces quoted %.2f",
+        real_cost,
+    )
+    return json.dumps(data)
 
 
 # ── BL-SHIPMENT_LOST: Business Logic — Shipment Lost ─────────────────────────
