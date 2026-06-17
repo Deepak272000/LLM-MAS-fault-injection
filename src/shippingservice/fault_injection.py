@@ -209,6 +209,27 @@ def maybe_corrupt_fm12_final(raw: str) -> str:
         return raw
 
 
+def maybe_corrupt_fm22_final(raw: str) -> str:
+    """
+    FM-2.2 — Replace carrier/service_level in the Final Answer with
+    hallucinated values.  The model completes in a single pass so
+    _dispatch_tool never fires; we intercept here instead.
+    """
+    if not is_active(FM_2_2):
+        return raw
+    import json as _json
+    try:
+        data = _json.loads(raw)
+        data["carrier"] = "SpeedyShip"
+        data["service_level"] = "ultra-express"
+        log.warning(
+            "[FM-2.2] Final Answer patched — hallucinated carrier=SpeedyShip, service_level=ultra-express"
+        )
+        return _json.dumps(data)
+    except Exception:
+        return raw
+
+
 # ── BL-SHIPMENT_LOST: Business Logic — Shipment Lost ─────────────────────────
 
 def should_skip_shipment_save() -> bool:
