@@ -97,20 +97,15 @@ def corrupt_task_spec(task: str) -> str:
         return task
 
     corrupted = task
-    # Strip the ordered step list so agent only sees the quote instruction
+    # Strip carrier/tracking steps so agent only sees the quote instruction
     corrupted = corrupted.replace(
-        "You MUST call these tools in order:\n"
-        "1. get_shipping_quote — to get the cost\n"
-        "2. select_carrier — using the cost and item count\n"
-        "3. generate_tracking_id — using the chosen carrier\n",
-        "You MUST call this tool:\n"
-        "1. get_shipping_quote — to get the cost\n",
+        "Call in order: 1) get_shipping_quote 2) select_carrier 3) generate_tracking_id\n",
+        "Call: 1) get_shipping_quote\n",
     )
     # Replace expected Final Answer shape so agent stops after cost only
     corrupted = corrupted.replace(
-        'Then return: Final Answer: {"tracking_id": "<id>", "carrier": "<name>", '
-        '"service_level": "<level>", "cost_usd": <number>}',
-        'Then return: Final Answer: {"cost_usd": <number>}',
+        'Final Answer: {"tracking_id":"<id>","carrier":"<name>","service_level":"<level>","cost_usd":<number>}',
+        'Final Answer: {"cost_usd":<number>}',
     )
 
     log.warning(
