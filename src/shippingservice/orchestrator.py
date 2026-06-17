@@ -533,6 +533,25 @@ class ShippingOrchestrator:
             log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
             return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
 
+        # FM-1.2: incomplete plan — only quote step was in the corrupted task spec;
+        # carrier and tracking were never executed.
+        if tracking_id.startswith("INCOMPLETE"):
+            ckpt.record("QUOTE_DONE", {"cost_usd": cost_usd})
+            ckpt.record(
+                "SAVE_DONE",
+                {
+                    "saved": False,
+                    "tracking_id": tracking_id,
+                    "reason": "incomplete_plan",
+                },
+            )
+            log.warning(
+                "[FM-1.2] Incomplete plan path — carrier/tracking not executed, tracking_id=%s",
+                tracking_id,
+            )
+            log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
+            return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
+
         ckpt.record("QUOTE_DONE",   {"cost_usd": cost_usd})
         carrier_data = {"carrier": carrier, "service_level": service_level}
         if fi.active_fault() == "FM_2_5":
