@@ -132,7 +132,9 @@ def run_currency_agent(fault_mode: str) -> dict:
         if _afi is not None:
             _afi.FAULT_MODE = fault_mode  # also patch agent's own fi reference
         print(f"  [DBG-CUR] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
-              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r}")
+              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r} "
+              f"fi.__file__={getattr(fi,'__file__','?')} "
+              f"agent.__file__={getattr(agent_mod,'__file__','?')}")
         mock_client = MagicMock()
         mock_client.convert.return_value = dict(CLEAN_CURRENCY_RESULT)
         agent_mod.client = mock_client
@@ -162,7 +164,9 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         if _afi is not None:
             _afi.FAULT_MODE = fault_mode
         print(f"  [DBG-PAY] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
-              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r}")
+              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r} "
+              f"fi.__file__={getattr(fi,'__file__','?')} "
+              f"agent.__file__={getattr(agent_mod,'__file__','?')}")
         try:
             result = await agent_mod.PaymentAgent().run(
                 query="charge payment",
