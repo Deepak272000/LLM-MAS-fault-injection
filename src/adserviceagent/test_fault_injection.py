@@ -66,6 +66,9 @@ def run_one(fault_mode: str) -> dict:
 
     import app.fault_injection as fi_mod   # fresh: FAULT_MODE read from env, _global_lkw=[]
     import app.graph as graph_mod          # fresh: graph_mod.fi IS fi_mod (same sys.modules entry)
+    # DIAG: confirm fi identity and FAULT_MODE before running nodes
+    _nfi = graph_mod.input_node.__globals__.get("fi")
+    print(f"  [DIAG] env={os.environ.get('FAULT_MODE')} fi.FM={fi_mod.FAULT_MODE} same={fi_mod is graph_mod.fi} node_fi_same={fi_mod is _nfi}", flush=True)
 
     mock_client = MagicMock()
     mock_client.get_ads.return_value = [dict(ad) for ad in MOCK_ADS]
