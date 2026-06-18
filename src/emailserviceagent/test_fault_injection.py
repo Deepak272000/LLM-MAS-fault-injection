@@ -73,9 +73,11 @@ def run_one(fault_mode: str) -> dict:
     os.environ["FAULT_MODE"] = fault_mode
 
     import app.fault_injection as fi_mod
-    importlib.reload(fi_mod)
+    fi_mod = importlib.reload(fi_mod)      # rebind — reload() may return a new object
+    fi_mod.FAULT_MODE = fault_mode          # ensure fault mode is set before graph loads
     import app.graph as graph_mod
-    importlib.reload(graph_mod)
+    graph_mod = importlib.reload(graph_mod)  # rebind graph too
+    graph_mod.fi = fi_mod                    # force identical fi reference in node closures
 
     state = dict(INITIAL_STATE)
     state["request"] = dict(TEST_PAYLOAD)
