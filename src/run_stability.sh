@@ -6,7 +6,7 @@
 #SBATCH --mem=4G
 #SBATCH --time=00:10:00
 
-VENV=/speed-scratch/$USER/LLM-MAS/.venv
+VENV=/speed-scratch/$USER/.venv
 PYTHON=$VENV/bin/python
 
 cd /speed-scratch/$USER/LLM-MAS
