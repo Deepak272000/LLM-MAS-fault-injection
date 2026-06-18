@@ -36,6 +36,7 @@ import os
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class LKWCheckpoint:
 
 # ── Fault injection helpers ────────────────────────────────────────────────────
 
-def maybe_premature_termination() -> dict | None:
+def maybe_premature_termination() -> Optional[dict]:
     """FM_3_1: return before gRPC call executes."""
     if FAULT_MODE == "FM_3_1":
         log.warning("[FAULT FM_3_1] Premature termination — returning before conversion")
@@ -166,7 +167,7 @@ def maybe_overflow_result(result: dict) -> dict:
     return result
 
 
-def maybe_simulate_unavailable() -> Exception | None:
+def maybe_simulate_unavailable() -> Optional[Exception]:
     """BL_CURRENCY_UNAVAILABLE: simulate gRPC error for supported currency."""
     if FAULT_MODE == "BL_CURRENCY_UNAVAILABLE":
         log.warning("[FAULT BL_CURRENCY_UNAVAILABLE] Simulating unsupported currency error")

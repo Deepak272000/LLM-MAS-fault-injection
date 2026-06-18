@@ -8,5 +8,6 @@
 
 cd /speed-scratch/$USER/LLM-MAS
 source .venv/bin/activate
+pip install -q python-dotenv
 cd src
 python stability_analysis.py

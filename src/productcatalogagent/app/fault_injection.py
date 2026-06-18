@@ -36,6 +36,7 @@ import os
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def rip_summary() -> dict:
 
 # ── Fault injection helpers ───────────────────────────────────────────────────
 
-def maybe_premature_termination() -> list | None:
+def maybe_premature_termination() -> Optional[list]:
     """FM_3_1: return before gRPC call."""
     if FAULT_MODE == "FM_3_1":
         log.warning("[FAULT FM_3_1] Premature termination — returning before catalog call")

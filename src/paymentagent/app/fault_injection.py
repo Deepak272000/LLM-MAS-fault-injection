@@ -45,6 +45,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class LKWCheckpoint:
 
 # ── Fault injection helpers ────────────────────────────────────────────────────
 
-def maybe_premature_termination() -> dict | None:
+def maybe_premature_termination() -> Optional[dict]:
     """FM_3_1: return a fake result before any charge executes."""
     if FAULT_MODE == "FM_3_1":
         log.warning("[FAULT FM_3_1] Premature termination — returning before charge")
