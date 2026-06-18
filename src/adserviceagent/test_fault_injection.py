@@ -64,7 +64,21 @@ def run_one(fault_mode: str) -> dict:
     sys.modules.pop("app.fault_injection", None)
     import app.fault_injection as fi_mod
     import app.graph as graph_mod
-    graph_mod.fi = fi_mod   # rebind: nodes now share _global_lkw with fi_mod.get_lkw()
+
+    # Monkeypatch record_checkpoint to capture LKW locally — bypasses _global_lkw
+    # state issues on SPEED.  Also replace with patch() with direct attribute
+    # assignment: patch() calls _importer("app.graph") which re-runs the module
+    # import machinery and resets graph_mod.fi on Python 3.9/SPEED.
+    _lkw = []
+    _orig_record = fi_mod.record_checkpoint
+    def _capture(step, data):
+        _lkw.append({"step": step, "fault_mode": fault_mode, "data": data})
+        try:
+            _orig_record(step, data)
+        except Exception:
+            pass
+    fi_mod.record_checkpoint = _capture
+    graph_mod.fi = fi_mod   # rebind so nodes call our _capture via fi.record_checkpoint
 
     mock_client = MagicMock()
     mock_client.get_ads.return_value = [dict(ad) for ad in MOCK_ADS]
@@ -72,17 +86,31 @@ def run_one(fault_mode: str) -> dict:
     state = {k: (list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v)
              for k, v in TEST_STATE.items()}
 
+    # Direct attribute patching — avoids patch() _importer interference
+    _orig_client = graph_mod.AdServiceClient
+    graph_mod.AdServiceClient = lambda *a, **kw: mock_client
+
     start = datetime.now(timezone.utc)
-    with patch("app.graph.AdServiceClient", return_value=mock_client):
+    try:
         state = graph_mod.input_node(state)
         state = graph_mod.ad_lookup_node(state)
         state = graph_mod.output_node(state)
+    finally:
+        graph_mod.AdServiceClient = _orig_client
     elapsed_ms = (datetime.now(timezone.utc) - start).total_seconds() * 1000
 
-    lkw = fi_mod.get_lkw()
+    lkw = _lkw
     steps_reached = [cp["step"] for cp in lkw]
     steps_lost = [s for s in EXPECTED_STEPS if s not in steps_reached]
-    rip = fi_mod.rip_summary()
+
+    # Inline rip_summary (fi_mod.rip_summary reads _global_lkw which may differ)
+    _inf_flags = {"hallucinated", "context_tampered", "category_swapped", "empty_ads",
+                  "injected", "wrong_url", "duplicated", "premature_termination"}
+    infection_point = None
+    for cp in lkw:
+        if any(cp["data"].get(k) for k in _inf_flags):
+            if infection_point is None:
+                infection_point = cp["step"]
 
     ads = state.get("ads", [])
     return {
@@ -90,8 +118,8 @@ def run_one(fault_mode: str) -> dict:
         "elapsed_ms": round(elapsed_ms, 1),
         "steps_reached": steps_reached,
         "steps_lost": steps_lost,
-        "infection_point": rip["infection_point"],
-        "propagation_depth": rip["propagation_depth"],
+        "infection_point": infection_point,
+        "propagation_depth": len(steps_lost),
         "context_keys": state.get("context_keys", []),
         "ads_count": len(ads),
         "ad_preview": ads[0] if ads else None,

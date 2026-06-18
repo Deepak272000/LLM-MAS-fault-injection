@@ -79,7 +79,21 @@ def run_one(fault_mode: str) -> dict:
     sys.modules.pop("app.fault_injection", None)
     import app.fault_injection as fi_mod
     import app.graph as graph_mod
-    graph_mod.fi = fi_mod   # rebind: nodes now share _global_lkw with fi_mod.get_lkw()
+
+    # Monkeypatch record_checkpoint to capture LKW locally — bypasses _global_lkw
+    # state issues on SPEED.  Also replace with patch() with direct attribute
+    # assignment: patch() calls _importer("app.graph") which re-runs the module
+    # import machinery and resets graph_mod.fi on Python 3.9/SPEED.
+    _lkw = []
+    _orig_record = fi_mod.record_checkpoint
+    def _capture(step, data):
+        _lkw.append({"step": step, "fault_mode": fault_mode, "data": data})
+        try:
+            _orig_record(step, data)
+        except Exception:
+            pass
+    fi_mod.record_checkpoint = _capture
+    graph_mod.fi = fi_mod   # rebind so nodes call our _capture via fi.record_checkpoint
 
     state = dict(INITIAL_STATE)
     state["request"] = dict(TEST_PAYLOAD)
@@ -87,26 +101,41 @@ def run_one(fault_mode: str) -> dict:
     mock_client = MagicMock()
     mock_client.send_confirmation_email.return_value = dict(MOCK_SEND_RESULT)
 
+    # Direct attribute patching — avoids patch() _importer interference
+    _orig_generate = graph_mod.generate_email_content
+    _orig_client   = graph_mod.EmailServiceClient
+    graph_mod.generate_email_content = lambda req: dict(MOCK_GENERATE_RESULT)
+    graph_mod.EmailServiceClient     = lambda *a, **kw: mock_client
+
     start = datetime.now(timezone.utc)
-    with patch("app.graph.generate_email_content", return_value=dict(MOCK_GENERATE_RESULT)):
-        with patch("app.graph.EmailServiceClient", return_value=mock_client):
-            # Call node functions directly (skip LangGraph routing overhead)
-            state = graph_mod.run_agent_node(state)
-            state = graph_mod.send_via_microservice_node(state)
+    try:
+        state = graph_mod.run_agent_node(state)
+        state = graph_mod.send_via_microservice_node(state)
+    finally:
+        graph_mod.generate_email_content = _orig_generate
+        graph_mod.EmailServiceClient     = _orig_client
     elapsed_ms = (datetime.now(timezone.utc) - start).total_seconds() * 1000
 
-    lkw = fi_mod.get_lkw()
+    lkw = _lkw
     steps_reached = [cp["step"] for cp in lkw]
     steps_lost = [s for s in EXPECTED_STEPS if s not in steps_reached]
-    rip = fi_mod.rip_summary()
+
+    # Inline rip_summary (fi_mod.rip_summary reads _global_lkw which may differ)
+    _inf_flags = {"hallucinated", "recipient_swapped", "type_wrong", "send_skipped",
+                  "double_send", "corrupted", "wrong_customer", "premature_termination"}
+    infection_point = None
+    for cp in lkw:
+        if any(cp["data"].get(k) for k in _inf_flags):
+            if infection_point is None:
+                infection_point = cp["step"]
 
     return {
         "fault_mode": fault_mode,
         "elapsed_ms": round(elapsed_ms, 1),
         "steps_reached": steps_reached,
         "steps_lost": steps_lost,
-        "infection_point": rip["infection_point"],
-        "propagation_depth": rip["propagation_depth"],
+        "infection_point": infection_point,
+        "propagation_depth": len(steps_lost),
         "state": {
             "email_type":          state.get("email_type"),
             "subject":             state.get("subject", "")[:60],
