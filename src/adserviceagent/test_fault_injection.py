@@ -57,18 +57,14 @@ def run_one(fault_mode: str) -> dict:
     os.environ["FAULT_MODE"] = fault_mode
     os.environ["USE_LLM"] = "false"
 
-    # Evict only the two modules that hold per-run state so each call gets a
-    # fresh import.  importlib.reload() is unreliable on Python 3.9/SPEED —
-    # it can return a new module object while graph_mod still holds the old fi
-    # reference, causing record_checkpoint() and get_lkw() to diverge.
+    # Fresh fi_mod per run so FAULT_MODE and _global_lkw are reset.
+    # Do NOT evict app.graph — re-importing it has partial-init issues on SPEED.
+    # The cached graph_mod is reused; we rebind graph_mod.fi so node functions
+    # (which look up 'fi' in graph_mod.__dict__ at call time) see the new fi_mod.
     sys.modules.pop("app.fault_injection", None)
-    sys.modules.pop("app.graph", None)
-
-    import app.fault_injection as fi_mod   # fresh: FAULT_MODE read from env, _global_lkw=[]
-    import app.graph as graph_mod          # fresh: graph_mod.fi IS fi_mod (same sys.modules entry)
-    # DIAG: confirm fi identity and FAULT_MODE before running nodes
-    _nfi = graph_mod.input_node.__globals__.get("fi")
-    print(f"  [DIAG] env={os.environ.get('FAULT_MODE')} fi.FM={fi_mod.FAULT_MODE} same={fi_mod is graph_mod.fi} node_fi_same={fi_mod is _nfi}", flush=True)
+    import app.fault_injection as fi_mod
+    import app.graph as graph_mod
+    graph_mod.fi = fi_mod   # rebind: nodes now share _global_lkw with fi_mod.get_lkw()
 
     mock_client = MagicMock()
     mock_client.get_ads.return_value = [dict(ad) for ad in MOCK_ADS]
