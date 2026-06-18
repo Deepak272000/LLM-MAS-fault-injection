@@ -1,5 +1,7 @@
 import logging
+import importlib
 from app.grpc_client import CurrencyGrpcClient
+import app.fault_injection as fi
 
 logger = logging.getLogger(__name__)
 
@@ -12,28 +14,79 @@ class CurrencyAgent:
             nanos: int = 0, to_currency: str = "EUR"):
 
         logger.info(f"CurrencyAgent.run called | action={action} | query='{query}'")
+        lkw = fi.LKWCheckpoint()
+
+        lkw.record("TASK_START", {
+            "action": action,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "units": units,
+            "nanos": nanos,
+            "fault_mode": fi.FAULT_MODE,
+        })
+
+        # FM_3_1: premature termination before gRPC call
+        early = fi.maybe_premature_termination()
+        if early:
+            lkw.record("FINAL_ANSWER", early)
+            logger.warning(f"[LKW RIP] {lkw.rip_summary()}")
+            return {"mode": "agent", "action": action, "data": early, "lkw": lkw.checkpoints}
+
         q = query.lower().strip()
 
         if action == "convert" or "convert" in q or "to" in q:
+            # FM_2_5: tamper amount before conversion
+            units, nanos = fi.maybe_tamper_amount(units, nanos)
+            # FM_1_2: swap target currency
+            to_currency = fi.maybe_swap_currency(to_currency)
+
+            # BL_CURRENCY_UNAVAILABLE: simulate gRPC error
+            err = fi.maybe_simulate_unavailable()
+            if err:
+                lkw.record("FINAL_ANSWER", {
+                    "unavailable": True,
+                    "error": str(err),
+                })
+                logger.info(f"[LKW RIP] {lkw.rip_summary()}")
+                return {"mode": "agent", "action": "convert", "data": {"error": str(err)}, "lkw": lkw.checkpoints}
+
             logger.info(f"Executing convert: {units}.{nanos} {from_currency} -> {to_currency}")
-            result = {
-                "mode": "agent",
-                "action": "convert",
-                "data": client.convert(
-                    currency_code=from_currency,
-                    units=units,
-                    nanos=nanos,
-                    to_code=to_currency
-                )
-            }
-            logger.info(f"Convert completed: {result['data']}")
-            return result
+            data = client.convert(
+                currency_code=from_currency,
+                units=units,
+                nanos=nanos,
+                to_code=to_currency,
+            )
+
+            # FM_2_2: hallucinate result
+            data = fi.maybe_hallucinate_result(data)
+            # BL_RATE_MANIPULATION: inflate rate
+            data = fi.maybe_manipulate_rate(data)
+            # BL_STALE_RATE: replace with stale value
+            data = fi.maybe_inject_stale_rate(data)
+            # BL_CONVERSION_OVERFLOW: inject overflow
+            data = fi.maybe_overflow_result(data)
+
+            lkw.record("CONVERT_DONE", {
+                "from_currency": from_currency,
+                "to_currency": to_currency,
+                "units_in": units,
+                "units_out": data.get("units"),
+                "hallucinated": data.get("hallucinated", False),
+                "rate_manipulated": data.get("rate_manipulated", False),
+                "stale_rate": data.get("stale_rate", False),
+                "overflow": data.get("overflow", False),
+                "amount_tampered": fi.FAULT_MODE == "FM_2_5",
+                "currency_swapped": fi.FAULT_MODE == "FM_1_2",
+            })
+
+            lkw.record("FINAL_ANSWER", {"result": data})
+            logger.info(f"[LKW RIP] {lkw.rip_summary()}")
+            return {"mode": "agent", "action": "convert", "data": data, "lkw": lkw.checkpoints}
 
         logger.info("Executing get_supported_currencies")
-        result = {
-            "mode": "agent",
-            "action": "get_supported_currencies",
-            "data": client.get_supported_currencies()
-        }
-        logger.info(f"get_supported_currencies completed: {len(result['data'])} currencies returned")
-        return result
+        data = client.get_supported_currencies()
+        lkw.record("CONVERT_DONE", {"currencies_count": len(data)})
+        lkw.record("FINAL_ANSWER", {"currencies": data})
+        logger.info(f"[LKW RIP] {lkw.rip_summary()}")
+        return {"mode": "agent", "action": "get_supported_currencies", "data": data, "lkw": lkw.checkpoints}
