@@ -6,8 +6,13 @@
 #SBATCH --mem=4G
 #SBATCH --time=00:10:00
 
+VENV=/speed-scratch/$USER/LLM-MAS/.venv
+PYTHON=$VENV/bin/python
+
 cd /speed-scratch/$USER/LLM-MAS
-source .venv/bin/activate
-pip install -q python-dotenv
+
+# Install missing package into the venv explicitly
+$PYTHON -m pip install -q python-dotenv
+
 cd src
-python stability_analysis.py
+$PYTHON stability_analysis.py
