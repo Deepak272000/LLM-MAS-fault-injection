@@ -131,10 +131,6 @@ def run_currency_agent(fault_mode: str) -> dict:
         _afi = getattr(agent_mod, 'fi', None)
         if _afi is not None:
             _afi.FAULT_MODE = fault_mode  # also patch agent's own fi reference
-        print(f"  [DBG-CUR] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
-              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r} "
-              f"fi.__file__={getattr(fi,'__file__','?')} "
-              f"agent.__file__={getattr(agent_mod,'__file__','?')}")
         mock_client = MagicMock()
         mock_client.convert.return_value = dict(CLEAN_CURRENCY_RESULT)
         agent_mod.client = mock_client
@@ -142,7 +138,6 @@ def run_currency_agent(fault_mode: str) -> dict:
             query="convert 10 USD to EUR", action="convert",
             from_currency="USD", units=10, nanos=0, to_currency="EUR",
         )
-        print(f"  [DBG-CUR] units={result.get('data',{}).get('units')} lkw={len(result.get('lkw',[]))}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"], ["TASK_START", "CONVERT_DONE", "FINAL_ANSWER"])
@@ -163,10 +158,6 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         _afi = getattr(agent_mod, 'fi', None)
         if _afi is not None:
             _afi.FAULT_MODE = fault_mode
-        print(f"  [DBG-PAY] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
-              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r} "
-              f"fi.__file__={getattr(fi,'__file__','?')} "
-              f"agent.__file__={getattr(agent_mod,'__file__','?')}")
         try:
             result = await agent_mod.PaymentAgent().run(
                 query="charge payment",
@@ -175,7 +166,6 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         except Exception as _exc:
             print(f"  [WARN] PaymentAgent.run() raised {type(_exc).__name__}: {_exc}")
             result = {"mode": "error", "action": "charge", "data": {}, "lkw": []}
-        print(f"  [DBG-PAY] lkw={len(result.get('lkw',[]))} data={list(result.get('data',{}).keys())}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"],
