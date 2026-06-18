@@ -7,7 +7,7 @@
 
 ## Table of Contents
 1. [Stability Analysis (RQ5)](#1-stability-analysis-rq5)
-2. [Agent-Level Fault Injection — All 6 Agents](#2-agent-level-fault-injection)
+2. [Agent-Level Fault Injection — All 7 Agents](#2-agent-level-fault-injection)
 3. [HITL Tier Classification — Automated](#3-hitl-tier-classification)
 4. [Cross-Agent Fault Propagation](#4-cross-agent-fault-propagation)
 5. [Key Findings Summary](#5-key-findings-summary)
