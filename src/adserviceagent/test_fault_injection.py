@@ -57,12 +57,15 @@ def run_one(fault_mode: str) -> dict:
     os.environ["FAULT_MODE"] = fault_mode
     os.environ["USE_LLM"] = "false"
 
-    import app.fault_injection as fi_mod
-    fi_mod = importlib.reload(fi_mod)      # rebind — reload() may return a new object
-    fi_mod.FAULT_MODE = fault_mode          # ensure fault mode is set before graph loads
-    import app.graph as graph_mod
-    graph_mod = importlib.reload(graph_mod)  # rebind graph too
-    graph_mod.fi = fi_mod                    # force identical fi reference in node closures
+    # Evict only the two modules that hold per-run state so each call gets a
+    # fresh import.  importlib.reload() is unreliable on Python 3.9/SPEED —
+    # it can return a new module object while graph_mod still holds the old fi
+    # reference, causing record_checkpoint() and get_lkw() to diverge.
+    sys.modules.pop("app.fault_injection", None)
+    sys.modules.pop("app.graph", None)
+
+    import app.fault_injection as fi_mod   # fresh: FAULT_MODE read from env, _global_lkw=[]
+    import app.graph as graph_mod          # fresh: graph_mod.fi IS fi_mod (same sys.modules entry)
 
     mock_client = MagicMock()
     mock_client.get_ads.return_value = [dict(ad) for ad in MOCK_ADS]
