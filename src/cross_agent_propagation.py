@@ -23,7 +23,6 @@ Usage:
 """
 
 import asyncio
-import importlib
 import json
 import os
 import sys
@@ -125,15 +124,15 @@ def run_currency_agent(fault_mode: str) -> dict:
     agent_dir = SRC / "currencyagent"
     captured = {}
     with agent_context(agent_dir, fault_mode, PROTO_STUBS):
+        # context already cleared app.* from sys.modules — these are fresh imports
         import app.fault_injection as fi
+        fi.FAULT_MODE = fault_mode  # set BEFORE agent import so agent picks up correct mode
         import app.agent as agent_mod
-        importlib.reload(fi)
-        fi.FAULT_MODE = fault_mode  # force-set in case env-var timing differs on Python 3.9
-        importlib.reload(agent_mod)
-        fi.FAULT_MODE = fault_mode  # re-apply after agent reload
-        print(f"  [DBG-CUR] fault_mode={fault_mode!r} fi.FAULT_MODE={fi.FAULT_MODE!r} "
-              f"same_fi={fi is agent_mod.fi} agent_fi.FAULT_MODE={agent_mod.fi.FAULT_MODE!r} "
-              f"LKWCheckpoint_type={type(agent_mod.fi.LKWCheckpoint).__name__}")
+        _afi = getattr(agent_mod, 'fi', None)
+        if _afi is not None:
+            _afi.FAULT_MODE = fault_mode  # also patch agent's own fi reference
+        print(f"  [DBG-CUR] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
+              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r}")
         mock_client = MagicMock()
         mock_client.convert.return_value = dict(CLEAN_CURRENCY_RESULT)
         agent_mod.client = mock_client
@@ -141,7 +140,7 @@ def run_currency_agent(fault_mode: str) -> dict:
             query="convert 10 USD to EUR", action="convert",
             from_currency="USD", units=10, nanos=0, to_currency="EUR",
         )
-        print(f"  [DBG-CUR] result units={result.get('data',{}).get('units')} lkw_len={len(result.get('lkw',[]))}")
+        print(f"  [DBG-CUR] units={result.get('data',{}).get('units')} lkw={len(result.get('lkw',[]))}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"], ["TASK_START", "CONVERT_DONE", "FINAL_ANSWER"])
@@ -156,15 +155,14 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
     captured = {}
     with agent_context(agent_dir, fault_mode, {"app.repository": mock_repo}):
         import app.fault_injection as fi
+        fi.FAULT_MODE = fault_mode
         import app.tools as tools_mod
         import app.agent as agent_mod
-        importlib.reload(fi)
-        fi.FAULT_MODE = fault_mode
-        importlib.reload(tools_mod)
-        importlib.reload(agent_mod)
-        fi.FAULT_MODE = fault_mode
-        print(f"  [DBG-PAY] fault_mode={fault_mode!r} fi.FAULT_MODE={fi.FAULT_MODE!r} "
-              f"same_fi={fi is agent_mod.fi} LKWCheckpoint_type={type(agent_mod.fi.LKWCheckpoint).__name__}")
+        _afi = getattr(agent_mod, 'fi', None)
+        if _afi is not None:
+            _afi.FAULT_MODE = fault_mode
+        print(f"  [DBG-PAY] fault_mode={fault_mode!r} fi.FM={fi.FAULT_MODE!r} "
+              f"same_fi={_afi is fi} afi.FM={getattr(_afi,'FAULT_MODE','N/A')!r}")
         try:
             result = await agent_mod.PaymentAgent().run(
                 query="charge payment",
@@ -173,7 +171,7 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         except Exception as _exc:
             print(f"  [WARN] PaymentAgent.run() raised {type(_exc).__name__}: {_exc}")
             result = {"mode": "error", "action": "charge", "data": {}, "lkw": []}
-        print(f"  [DBG-PAY] lkw_len={len(result.get('lkw', []))} result_keys={list(result.get('data',{}).keys())}")
+        print(f"  [DBG-PAY] lkw={len(result.get('lkw',[]))} data={list(result.get('data',{}).keys())}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"],
@@ -187,11 +185,11 @@ def run_catalog_agent(fault_mode: str) -> dict:
     captured = {}
     with agent_context(agent_dir, fault_mode, PROTO_STUBS):
         import app.fault_injection as fi
+        fi.FAULT_MODE = fault_mode
         import app.agent as agent_mod
-        importlib.reload(fi)
-        fi.FAULT_MODE = fault_mode
-        importlib.reload(agent_mod)
-        fi.FAULT_MODE = fault_mode
+        _afi = getattr(agent_mod, 'fi', None)
+        if _afi is not None:
+            _afi.FAULT_MODE = fault_mode
         mock_client = MagicMock()
         mock_client.list_products.return_value = [dict(p) for p in MOCK_PRODUCTS_CLEAN]
         mock_client.search_products.return_value = [dict(p) for p in MOCK_PRODUCTS_CLEAN]
@@ -209,11 +207,11 @@ def run_recommendation_agent(product_ids: list, fault_mode: str = "NONE") -> dic
     captured = {}
     with agent_context(agent_dir, fault_mode, PROTO_STUBS):
         import app.fault_injection as fi
+        fi.FAULT_MODE = fault_mode
         import app.agent as agent_mod
-        importlib.reload(fi)
-        fi.FAULT_MODE = fault_mode
-        importlib.reload(agent_mod)
-        fi.FAULT_MODE = fault_mode
+        _afi = getattr(agent_mod, 'fi', None)
+        if _afi is not None:
+            _afi.FAULT_MODE = fault_mode
         mock_client = MagicMock()
         mock_client.list_recommendations.return_value = list(MOCK_RECS)
         agent_mod.client = mock_client
