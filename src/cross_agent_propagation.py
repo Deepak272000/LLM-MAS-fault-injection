@@ -131,6 +131,9 @@ def run_currency_agent(fault_mode: str) -> dict:
         fi.FAULT_MODE = fault_mode  # force-set in case env-var timing differs on Python 3.9
         importlib.reload(agent_mod)
         fi.FAULT_MODE = fault_mode  # re-apply after agent reload
+        print(f"  [DBG-CUR] fault_mode={fault_mode!r} fi.FAULT_MODE={fi.FAULT_MODE!r} "
+              f"same_fi={fi is agent_mod.fi} agent_fi.FAULT_MODE={agent_mod.fi.FAULT_MODE!r} "
+              f"LKWCheckpoint_type={type(agent_mod.fi.LKWCheckpoint).__name__}")
         mock_client = MagicMock()
         mock_client.convert.return_value = dict(CLEAN_CURRENCY_RESULT)
         agent_mod.client = mock_client
@@ -138,6 +141,7 @@ def run_currency_agent(fault_mode: str) -> dict:
             query="convert 10 USD to EUR", action="convert",
             from_currency="USD", units=10, nanos=0, to_currency="EUR",
         )
+        print(f"  [DBG-CUR] result units={result.get('data',{}).get('units')} lkw_len={len(result.get('lkw',[]))}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"], ["TASK_START", "CONVERT_DONE", "FINAL_ANSWER"])
@@ -159,6 +163,8 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         importlib.reload(tools_mod)
         importlib.reload(agent_mod)
         fi.FAULT_MODE = fault_mode
+        print(f"  [DBG-PAY] fault_mode={fault_mode!r} fi.FAULT_MODE={fi.FAULT_MODE!r} "
+              f"same_fi={fi is agent_mod.fi} LKWCheckpoint_type={type(agent_mod.fi.LKWCheckpoint).__name__}")
         try:
             result = await agent_mod.PaymentAgent().run(
                 query="charge payment",
@@ -167,6 +173,7 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         except Exception as _exc:
             print(f"  [WARN] PaymentAgent.run() raised {type(_exc).__name__}: {_exc}")
             result = {"mode": "error", "action": "charge", "data": {}, "lkw": []}
+        print(f"  [DBG-PAY] lkw_len={len(result.get('lkw', []))} result_keys={list(result.get('data',{}).keys())}")
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"],
