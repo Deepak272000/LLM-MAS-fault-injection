@@ -29,6 +29,7 @@ Environment variables:
 
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -122,19 +123,38 @@ class LKWCheckpoint:
         for c in self.checkpoints:
             d = c.get("data", {})
             # Detect infection signals
-            if c["step"] == "QUOTE_DONE" and d.get("cost_usd", 1) <= 0:
-                infected = c["step"]
-                break
-            if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "Unknown"):
+            if c["step"] == "QUOTE_DONE":
+                cost = d.get("cost_usd", 1.0)
+                # Detect real corruption: strictly negative, OR negative-zero (-0.0 from
+                # BL_REFUND_REASONING), OR inventory inflation flag.
+                # Plain 0.0 from non-JSON model output is NOT treated as infected.
+                cost_infected = (
+                    cost < 0
+                    or (cost == 0.0 and math.copysign(1.0, cost) < 0)
+                    or d.get("item_count_inflated", False)
+                )
+                if cost_infected:
+                    infected = c["step"]
+                    break
+            if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "Unknown", "PremiumExpress"):
                 infected = c["step"]
                 break
             if c["step"] == "CARRIER_DONE" and d.get("ignored_downstream_quote"):
                 infected = c["step"]
                 break
+            if c["step"] == "CARRIER_DONE" and d.get("forced_vendor"):
+                infected = c["step"]
+                break
             if c["step"] == "TRACKING_DONE" and "PREMATURE" in str(d.get("tracking_id", "")):
                 infected = c["step"]
                 break
-            if c["step"] == "SAVE_DONE" and not d.get("saved", True):
+            if c["step"] == "TRACKING_DONE" and "COMPLIANCE-FAILED" in str(d.get("tracking_id", "")):
+                infected = c["step"]
+                break
+            if c["step"] == "ESCALATION_CHECK" and d.get("escalation_required"):
+                infected = c["step"]
+                break
+            if c["step"] == "SAVE_DONE" and not d.get("saved", True) and d.get("reason") != "benchmark_mode":
                 infected = c["step"]
                 break
 
@@ -396,6 +416,8 @@ class ShippingOrchestrator:
                 value = fi.maybe_corrupt_fm22_final(value)
                 # FM-2.5: overwrite cost_usd with stale value to simulate ignored quote.
                 value = fi.maybe_corrupt_fm25_final(value)
+                # BL-VENDOR_NEGOTIATION: force PremiumExpress in final answer.
+                value = fi.maybe_force_vendor_final(value)
                 log.info(f"Agent reached Final Answer after {iteration + 1} iterations")
                 return value
             elif kind == "action":
@@ -411,6 +433,16 @@ class ShippingOrchestrator:
                     "2) Final Answer: <valid JSON>\n"
                 )
 
+        # BL-COMPLIANCE_AMBIGUITY: agent exhausted loop trying to resolve compliance;
+        # return a marked fallback answer so the trace is valid and the fault is observable.
+        if fi.is_active(fi.BL_COMPLIANCE_AMBIGUITY):
+            log.warning(
+                "[BL-COMPLIANCE_AMBIGUITY] Agent loop exhausted after %d iterations — "
+                "compliance ambiguity caused complete workflow failure; returning fallback.",
+                MAX_ITERATIONS,
+            )
+            return '{"tracking_id": "COMPLIANCE-FAILED-0000", "carrier": "Unknown", '\
+                   '"service_level": "standard", "cost_usd": 0.0}'
         raise RuntimeError(
             f"ReAct loop exceeded {MAX_ITERATIONS} iterations without a Final Answer"
         )
@@ -520,6 +552,10 @@ class ShippingOrchestrator:
             log.warning(
                 "[FM-2.2] Ship-order fallback patch applied — carrier=SpeedyShip, service_level=ultra-express"
             )
+        if fi.is_active(fi.BL_VENDOR_NEGOTIATION):
+            data["carrier"] = "PremiumExpress"
+            data["service_level"] = "overnight"
+            log.warning("[BL-VENDOR_NEGOTIATION] Ship-order fallback patch applied — carrier=PremiumExpress")
         if fi.is_active(fi.FM_2_5):
             quoted_cost = data.get("cost_usd", 0.0)
             data["cost_usd"] = 4.99
@@ -577,8 +613,14 @@ class ShippingOrchestrator:
             log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
             return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
 
-        ckpt.record("QUOTE_DONE",   {"cost_usd": cost_usd})
+        quote_data: dict = {"cost_usd": cost_usd}
+        if fi.is_active(fi.BL_INVENTORY_MISMATCH):
+            quote_data["item_count_inflated"] = True
+        ckpt.record("QUOTE_DONE", quote_data)
         carrier_data = {"carrier": carrier, "service_level": service_level}
+        if fi.is_active(fi.BL_VENDOR_NEGOTIATION) or carrier == "PremiumExpress":
+            carrier_data["forced_vendor"] = True
+            carrier_data["forced_carrier"] = "PremiumExpress"
         if fi.active_fault() == "FM_2_5" or data.get("ignored_downstream_quote"):
             carrier_data["ignored_downstream_quote"] = True
             carrier_data["quoted_cost_usd"] = data.get("quoted_cost_usd", cost_usd)
