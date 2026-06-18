@@ -136,7 +136,7 @@ class LKWCheckpoint:
                 if cost_infected:
                     infected = c["step"]
                     break
-            if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "Unknown", "PremiumExpress"):
+            if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "PremiumExpress"):
                 infected = c["step"]
                 break
             if c["step"] == "CARRIER_DONE" and d.get("ignored_downstream_quote"):
