@@ -128,7 +128,9 @@ def run_currency_agent(fault_mode: str) -> dict:
         import app.fault_injection as fi
         import app.agent as agent_mod
         importlib.reload(fi)
+        fi.FAULT_MODE = fault_mode  # force-set in case env-var timing differs on Python 3.9
         importlib.reload(agent_mod)
+        fi.FAULT_MODE = fault_mode  # re-apply after agent reload
         mock_client = MagicMock()
         mock_client.convert.return_value = dict(CLEAN_CURRENCY_RESULT)
         agent_mod.client = mock_client
@@ -153,12 +155,18 @@ async def run_payment_agent(units: int, currency_code: str, fault_mode: str = "N
         import app.tools as tools_mod
         import app.agent as agent_mod
         importlib.reload(fi)
+        fi.FAULT_MODE = fault_mode
         importlib.reload(tools_mod)
         importlib.reload(agent_mod)
-        result = await agent_mod.PaymentAgent().run(
-            query="charge payment",
-            currency_code=currency_code, units=units, nanos=0, **MOCK_CARD,
-        )
+        fi.FAULT_MODE = fault_mode
+        try:
+            result = await agent_mod.PaymentAgent().run(
+                query="charge payment",
+                currency_code=currency_code, units=units, nanos=0, **MOCK_CARD,
+            )
+        except Exception as _exc:
+            print(f"  [WARN] PaymentAgent.run() raised {type(_exc).__name__}: {_exc}")
+            result = {"mode": "error", "action": "charge", "data": {}, "lkw": []}
         captured["result"] = result
         captured["lkw"] = result.get("lkw", [])
     rip = _rip_from_lkw(captured["lkw"],
@@ -174,7 +182,9 @@ def run_catalog_agent(fault_mode: str) -> dict:
         import app.fault_injection as fi
         import app.agent as agent_mod
         importlib.reload(fi)
+        fi.FAULT_MODE = fault_mode
         importlib.reload(agent_mod)
+        fi.FAULT_MODE = fault_mode
         mock_client = MagicMock()
         mock_client.list_products.return_value = [dict(p) for p in MOCK_PRODUCTS_CLEAN]
         mock_client.search_products.return_value = [dict(p) for p in MOCK_PRODUCTS_CLEAN]
@@ -194,7 +204,9 @@ def run_recommendation_agent(product_ids: list, fault_mode: str = "NONE") -> dic
         import app.fault_injection as fi
         import app.agent as agent_mod
         importlib.reload(fi)
+        fi.FAULT_MODE = fault_mode
         importlib.reload(agent_mod)
+        fi.FAULT_MODE = fault_mode
         mock_client = MagicMock()
         mock_client.list_recommendations.return_value = list(MOCK_RECS)
         agent_mod.client = mock_client
