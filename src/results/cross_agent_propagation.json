@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-06-18T12:18:01.321547+00:00",
+  "chains": [
+    {
+      "chain": "A",
+      "description": "CurrencyAgent FM_2_2 -> PaymentAgent NONE",
+      "hop1_fault": "FM_2_2",
+      "hop2_fault": "NONE",
+      "baseline_units": 9,
+      "propagated_units": 1337,
+      "overcharge_eur": 1328,
+      "overcharge_pct": 14755.6,
+      "hop1_infection": "CONVERT_DONE",
+      "hop2_infection": null,
+      "hop2_steps": [
+        "TASK_START",
+        "CARD_VALIDATED",
+        "CHARGE_DONE",
+        "SAVE_DONE",
+        "FINAL_ANSWER"
+      ],
+      "finding": "FM-2.2 hallucination propagates silently across agent boundary; PaymentAgent is fault-free but charges inflated amount"
+    },
+    {
+      "chain": "B",
+      "description": "ProductCatalogAgent FM_2_2 -> RecommendationAgent NONE",
+      "hop1_fault": "FM_2_2",
+      "hop2_fault": "NONE",
+      "baseline_product_ids": [
+        "PROD-001"
+      ],
+      "propagated_product_ids": [
+        "HALLUCINATED-001"
+      ],
+      "baseline_recs": [
+        "PROD-042",
+        "PROD-017",
+        "PROD-009"
+      ],
+      "propagated_recs": [
+        "PROD-042",
+        "PROD-017",
+        "PROD-009"
+      ],
+      "hop1_infection": "CATALOG_DONE",
+      "hop2_infection": null,
+      "hop2_steps": [
+        "TASK_START",
+        "RECOMMEND_DONE",
+        "FINAL_ANSWER"
+      ],
+      "finding": "FM-2.2 phantom product ID propagates silently to recommender; no structural step loss at hop 2; garbage-in garbage-out"
+    }
+  ]
+}

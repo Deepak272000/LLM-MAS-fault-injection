@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-06-18T10:56:28.066382+00:00",
+  "total_scenarios": 10,
+  "tier_counts": {
+    "tier_1_silent": 5,
+    "tier_2_flagged": 2,
+    "tier_3_structural": 3
+  },
+  "hitl_required_count": 5,
+  "classifications": [
+    {
+      "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+      "tier": 3,
+      "tier_label": "TIER 3 \u2014 Workflow-Stopping",
+      "hitl_required": true,
+      "auto_detectable": true,
+      "hitl_reason": "Workflow did not complete: ReAct loop exceeded 8 iterations without a Final Answer",
+      "steps_lost": [
+        "CARRIER_DONE",
+        "ESCALATION_CHECK",
+        "FINAL_ANSWER",
+        "QUOTE_DONE",
+        "SAVE_DONE",
+        "TASK_START",
+        "TRACKING_DONE"
+      ],
+      "flags_found": [],
+      "propagation_depth": 7,
+      "source_file": "compliance_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "BL_INVENTORY_MISMATCH",
+      "tier": 3,
+      "tier_label": "TIER 3 \u2014 Workflow-Stopping",
+      "hitl_required": true,
+      "auto_detectable": true,
+      "hitl_reason": "Workflow did not complete: ReAct loop exceeded 8 iterations without a Final Answer",
+      "steps_lost": [
+        "CARRIER_DONE",
+        "ESCALATION_CHECK",
+        "FINAL_ANSWER",
+        "QUOTE_DONE",
+        "SAVE_DONE",
+        "TASK_START",
+        "TRACKING_DONE"
+      ],
+      "flags_found": [],
+      "propagation_depth": 7,
+      "source_file": "inventory_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "FM_3_1",
+      "tier": 3,
+      "tier_label": "TIER 3 \u2014 Structurally Disruptive",
+      "hitl_required": true,
+      "auto_detectable": true,
+      "hitl_reason": "Steps missing from trace: CARRIER_DONE, ESCALATION_CHECK",
+      "steps_lost": [
+        "CARRIER_DONE",
+        "ESCALATION_CHECK"
+      ],
+      "flags_found": [
+        "premature_termination"
+      ],
+      "propagation_depth": 2,
+      "source_file": "fm31_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "BL_CUSTOMER_ESCALATION",
+      "tier": 2,
+      "tier_label": "TIER 2 \u2014 Detectable via Metadata Flags",
+      "hitl_required": true,
+      "auto_detectable": true,
+      "hitl_reason": "Customer escalation flag set \u2014 high-risk order needs human review",
+      "steps_lost": [],
+      "flags_found": [
+        "escalation_required"
+      ],
+      "propagation_depth": 0,
+      "source_file": "escalation_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "BL_REFUND_REASONING",
+      "tier": 2,
+      "tier_label": "TIER 2 \u2014 Detectable via Metadata Flags",
+      "hitl_required": true,
+      "auto_detectable": true,
+      "hitl_reason": "Negative cost detected \u2014 refund/corruption condition present",
+      "steps_lost": [],
+      "flags_found": [
+        "negative_cost"
+      ],
+      "propagation_depth": 0,
+      "source_file": "refund_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "BL_SHIPMENT_LOST",
+      "tier": 1,
+      "tier_label": "TIER 1 \u2014 Silently Absorbed",
+      "hitl_required": false,
+      "auto_detectable": false,
+      "hitl_reason": "Flow completed with no missing steps. Manual checkpoint-data inspection required.",
+      "steps_lost": [],
+      "flags_found": [],
+      "propagation_depth": 3,
+      "source_file": "lkw_rip_results.json"
+    },
+    {
+      "fault_mode": "BL_VENDOR_NEGOTIATION",
+      "tier": 1,
+      "tier_label": "TIER 1 \u2014 Silently Absorbed",
+      "hitl_required": false,
+      "auto_detectable": false,
+      "hitl_reason": "Flow completed with no missing steps and no deviation flags. Manual checkpoint-data inspection required.",
+      "steps_lost": [],
+      "flags_found": [],
+      "propagation_depth": 0,
+      "source_file": "vendor_lkw_rip_evidence.json"
+    },
+    {
+      "fault_mode": "FM_1_2",
+      "tier": 1,
+      "tier_label": "TIER 1 \u2014 Silently Absorbed",
+      "hitl_required": false,
+      "auto_detectable": false,
+      "hitl_reason": "Flow completed with no missing steps. Manual checkpoint-data inspection required.",
+      "steps_lost": [],
+      "flags_found": [],
+      "propagation_depth": 0,
+      "source_file": "lkw_rip_results.json"
+    },
+    {
+      "fault_mode": "FM_2_2",
+      "tier": 1,
+      "tier_label": "TIER 1 \u2014 Silently Absorbed",
+      "hitl_required": false,
+      "auto_detectable": false,
+      "hitl_reason": "Flow completed with no missing steps. Manual checkpoint-data inspection required.",
+      "steps_lost": [],
+      "flags_found": [],
+      "propagation_depth": 3,
+      "source_file": "lkw_rip_results.json"
+    },
+    {
+      "fault_mode": "FM_2_5",
+      "tier": 1,
+      "tier_label": "TIER 1 \u2014 Silently Absorbed",
+      "hitl_required": false,
+      "auto_detectable": false,
+      "hitl_reason": "Flow completed with no missing steps. Manual checkpoint-data inspection required.",
+      "steps_lost": [],
+      "flags_found": [],
+      "propagation_depth": 3,
+      "source_file": "lkw_rip_results.json"
+    }
+  ]
+}

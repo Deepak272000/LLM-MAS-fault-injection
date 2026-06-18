@@ -1,0 +1,474 @@
+{
+  "agent": "emailserviceagent",
+  "runs": 3,
+  "total_modes": 9,
+  "stable_pass": 1,
+  "stable_fault": 8,
+  "unstable": 0,
+  "stability_rate": 100.0,
+  "rows": [
+    {
+      "fault_mode": "NONE",
+      "stability": "STABLE_PASS",
+      "infection_point": null,
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "NONE",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": null,
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "NONE",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": null,
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "NONE",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": null,
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "FM_3_1",
+      "stability": "STABLE_FAULT",
+      "infection_point": "FINAL_ANSWER",
+      "propagation_depth": 2,
+      "steps_reached": [
+        "TASK_START",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [
+        "EMAIL_GENERATED",
+        "EMAIL_SENT"
+      ],
+      "run_fingerprints": [
+        {
+          "fault_mode": "FM_3_1",
+          "steps_reached": [
+            "TASK_START",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [
+            "EMAIL_GENERATED",
+            "EMAIL_SENT"
+          ],
+          "infection_point": "FINAL_ANSWER",
+          "propagation_depth": 2
+        },
+        {
+          "fault_mode": "FM_3_1",
+          "steps_reached": [
+            "TASK_START",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [
+            "EMAIL_GENERATED",
+            "EMAIL_SENT"
+          ],
+          "infection_point": "FINAL_ANSWER",
+          "propagation_depth": 2
+        },
+        {
+          "fault_mode": "FM_3_1",
+          "steps_reached": [
+            "TASK_START",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [
+            "EMAIL_GENERATED",
+            "EMAIL_SENT"
+          ],
+          "infection_point": "FINAL_ANSWER",
+          "propagation_depth": 2
+        }
+      ]
+    },
+    {
+      "fault_mode": "FM_2_2",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_GENERATED",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "FM_2_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_2_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_2_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "FM_2_5",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_GENERATED",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "FM_2_5",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_2_5",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_2_5",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "FM_1_2",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_GENERATED",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "FM_1_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_1_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "FM_1_2",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "BL_SEND_SKIPPED",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_SENT",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "BL_SEND_SKIPPED",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_SEND_SKIPPED",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_SEND_SKIPPED",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "BL_DOUBLE_SEND",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_SENT",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "BL_DOUBLE_SEND",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_DOUBLE_SEND",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_DOUBLE_SEND",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_SENT",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "BL_CORRUPTED_BODY",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_GENERATED",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "BL_CORRUPTED_BODY",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_CORRUPTED_BODY",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_CORRUPTED_BODY",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        }
+      ]
+    },
+    {
+      "fault_mode": "BL_WRONG_CUSTOMER",
+      "stability": "STABLE_FAULT",
+      "infection_point": "EMAIL_GENERATED",
+      "propagation_depth": 0,
+      "steps_reached": [
+        "TASK_START",
+        "EMAIL_GENERATED",
+        "EMAIL_SENT",
+        "FINAL_ANSWER"
+      ],
+      "steps_lost": [],
+      "run_fingerprints": [
+        {
+          "fault_mode": "BL_WRONG_CUSTOMER",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_WRONG_CUSTOMER",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        },
+        {
+          "fault_mode": "BL_WRONG_CUSTOMER",
+          "steps_reached": [
+            "TASK_START",
+            "EMAIL_GENERATED",
+            "EMAIL_SENT",
+            "FINAL_ANSWER"
+          ],
+          "steps_lost": [],
+          "infection_point": "EMAIL_GENERATED",
+          "propagation_depth": 0
+        }
+      ]
+    }
+  ]
+}
