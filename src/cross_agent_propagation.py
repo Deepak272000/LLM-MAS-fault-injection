@@ -28,6 +28,7 @@ import json
 import os
 import sys
 from contextlib import contextmanager
+from typing import Optional
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, AsyncMock
 from pathlib import Path
@@ -49,7 +50,7 @@ sys.modules["langgraph.graph"] = _mock_lggraph
 
 
 @contextmanager
-def agent_context(agent_dir: Path, fault_mode: str, extra_stubs: dict | None = None):
+def agent_context(agent_dir: Path, fault_mode: str, extra_stubs: Optional[dict] = None):
     """
     Temporarily configure sys.path and sys.modules for a single agent.
     Clears all app.* modules before and after to prevent cross-agent conflicts.
