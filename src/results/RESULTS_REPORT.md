@@ -381,6 +381,36 @@ Yes. 64/64 mode-runs across all 7 agents are STABLE_PASS or STABLE_FAULT. Zero U
 
 ---
 
+## 6. Limitations
+
+### L1 — LLM Not in the Loop for 6 of 7 Agents
+
+The six mock-based agents (Payment, Currency, Email, ProductCatalog, Recommendation, Ad) run their fault injection tests by calling the agent's business logic method directly — bypassing the LangGraph router and the LLM inference call entirely. The `USE_LLM` flag defaults to `false` in those agents' configurations. As a result, their fault injection results characterize the correctness of the **LKW+RIP instrumentation framework** on deterministic Python code — not the fault detection capability of an LLM.
+
+Only **ShippingService** is a true LLM-in-the-loop agent in this study, using `qwen2.5-coder:14b` via Ollama on SPEED HPC for all 10 fault modes.
+
+**Implication:** Claims about LLM-based fault detection are supported only by the ShippingService results (11 fault modes, 7 TP, 2 Partial TP, 1 TN, 1 FN). The six-agent results establish a framework baseline, not an LLM capability claim. Extending live-LLM execution to all agents is left as future work.
+
+---
+
+### L2 — Single-Run LLM Results (ShippingService)
+
+The ShippingService results are from a single batch execution with `qwen2.5-coder:14b`. LLMs are stochastic; a second run may produce different infection signals for ambiguous fault modes. Stability matrices confirm determinism for the current run, but multi-run cross-model validation has not been performed.
+
+---
+
+### L3 — Known Code Defect in FM_3_1 Depth Calculation
+
+For ShippingService FM_3_1 (Premature Termination), the RIP depth calculator reports `depth=1` but two steps are actually missing from the trace (`CARRIER_DONE` + `ESCALATION_CHECK`). `ESCALATION_CHECK` was not included in the expected-steps list in the runner. The fault is correctly detected and classified as Partial TP, but the reported depth is undercount by 1. This is a code-level instrumentation bug, not a model error.
+
+---
+
+### L4 — Human Cross-Validation Incomplete at Time of Submission
+
+The human assessment rubric has been distributed to two independent assessors (cross-validation pending). Inter-rater agreement scores will be computed after all three assessments are submitted. Results in this report reflect Deepak's assessment only.
+
+---
+
 *Results files:*
 - `src/results/stability_summary.json` — RQ5 stability matrices (mock-based agents)
 - `src/results/hitl_classification_report.json` — automated HITL tier classification
