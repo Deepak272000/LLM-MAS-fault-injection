@@ -1,0 +1,937 @@
+{
+  "generated_at": "2026-06-10T22:19:11.503755+00:00",
+  "test_address": {
+    "street_address": "123 Main St",
+    "city": "Springfield",
+    "state": "IL",
+    "country": "US",
+    "zip_code": 62701
+  },
+  "test_items": [
+    {
+      "product_id": "OLJCESPC7Z",
+      "quantity": 2
+    },
+    {
+      "product_id": "66VCHSJNUP",
+      "quantity": 1
+    }
+  ],
+  "raw_results": [
+    {
+      "fault_mode": "NONE",
+      "elapsed_ms": 254128.7,
+      "error": null,
+      "lkw": {
+        "fault_mode": "NONE",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:33:37.082574+00:00",
+            "fault_mode": "NONE",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:37:51.211157+00:00",
+            "fault_mode": "NONE",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:37:51.211175+00:00",
+            "fault_mode": "NONE",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "FM_1_2",
+      "elapsed_ms": 9677.8,
+      "error": null,
+      "lkw": {
+        "fault_mode": "FM_1_2",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:37:51.215410+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:38:00.892975+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "raw": "{\"cost_usd\": 25.0}"
+            }
+          },
+          {
+            "step": "QUOTE_DONE",
+            "timestamp": "2026-06-10T21:38:00.893021+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "cost_usd": 25.0
+            }
+          },
+          {
+            "step": "CARRIER_DONE",
+            "timestamp": "2026-06-10T21:38:00.893031+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "carrier": "Unknown",
+              "service_level": "standard"
+            }
+          },
+          {
+            "step": "TRACKING_DONE",
+            "timestamp": "2026-06-10T21:38:00.893038+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "tracking_id": "{\"cost_usd\": 25.0}"
+            }
+          },
+          {
+            "step": "ESCALATION_CHECK",
+            "timestamp": "2026-06-10T21:38:00.893047+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "escalation_required": false
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:38:00.893057+00:00",
+            "fault_mode": "FM_1_2",
+            "data": {
+              "saved": false,
+              "tracking_id": "{\"cost_usd\": 25.0}",
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE",
+            "ESCALATION_CHECK",
+            "SAVE_DONE"
+          ],
+          "infection_point": "CARRIER_DONE",
+          "propagation_depth": 0,
+          "missing_steps": []
+        }
+      }
+    },
+    {
+      "fault_mode": "FM_2_2",
+      "elapsed_ms": 735973.5,
+      "error": null,
+      "lkw": {
+        "fault_mode": "FM_2_2",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:38:00.897770+00:00",
+            "fault_mode": "FM_2_2",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:50:16.871079+00:00",
+            "fault_mode": "FM_2_2",
+            "data": {
+              "raw": "",
+              "error": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:50:16.871112+00:00",
+            "fault_mode": "FM_2_2",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "FM_2_5",
+      "elapsed_ms": 218042.1,
+      "error": null,
+      "lkw": {
+        "fault_mode": "FM_2_5",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:50:16.876709+00:00",
+            "fault_mode": "FM_2_5",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:53:54.918298+00:00",
+            "fault_mode": "FM_2_5",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:53:54.918315+00:00",
+            "fault_mode": "FM_2_5",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "FM_3_1",
+      "elapsed_ms": 44799.2,
+      "error": null,
+      "lkw": {
+        "fault_mode": "FM_3_1",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:53:54.923678+00:00",
+            "fault_mode": "FM_3_1",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:54:39.721707+00:00",
+            "fault_mode": "FM_3_1",
+            "data": {
+              "raw": "{\"tracking_id\": \"PREMATURE-0000\", \"carrier\": \"Unknown\", \"service_level\": \"standard\", \"cost_usd\": 0.0}"
+            }
+          },
+          {
+            "step": "QUOTE_DONE",
+            "timestamp": "2026-06-10T21:54:39.721788+00:00",
+            "fault_mode": "FM_3_1",
+            "data": {
+              "cost_usd": 0.0
+            }
+          },
+          {
+            "step": "TRACKING_DONE",
+            "timestamp": "2026-06-10T21:54:39.721794+00:00",
+            "fault_mode": "FM_3_1",
+            "data": {
+              "tracking_id": "PREMATURE-0000"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:54:39.721798+00:00",
+            "fault_mode": "FM_3_1",
+            "data": {
+              "saved": false,
+              "tracking_id": "PREMATURE-0000",
+              "reason": "premature_termination"
+            }
+          }
+        ],
+        "missing_steps": [
+          "CARRIER_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "QUOTE_DONE",
+            "TRACKING_DONE",
+            "SAVE_DONE"
+          ],
+          "infection_point": "QUOTE_DONE",
+          "propagation_depth": 1,
+          "missing_steps": [
+            "CARRIER_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_SHIPMENT_LOST",
+      "elapsed_ms": 178484.7,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_SHIPMENT_LOST",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:54:39.734714+00:00",
+            "fault_mode": "BL_SHIPMENT_LOST",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:57:38.218923+00:00",
+            "fault_mode": "BL_SHIPMENT_LOST",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:57:38.218942+00:00",
+            "fault_mode": "BL_SHIPMENT_LOST",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_INVENTORY_MISMATCH",
+      "elapsed_ms": 137112.3,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_INVENTORY_MISMATCH",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:57:38.226393+00:00",
+            "fault_mode": "BL_INVENTORY_MISMATCH",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 6
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T21:59:55.336943+00:00",
+            "fault_mode": "BL_INVENTORY_MISMATCH",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T21:59:55.336963+00:00",
+            "fault_mode": "BL_INVENTORY_MISMATCH",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_VENDOR_NEGOTIATION",
+      "elapsed_ms": 206233.0,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_VENDOR_NEGOTIATION",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T21:59:55.343939+00:00",
+            "fault_mode": "BL_VENDOR_NEGOTIATION",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T22:03:21.572208+00:00",
+            "fault_mode": "BL_VENDOR_NEGOTIATION",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T22:03:21.573695+00:00",
+            "fault_mode": "BL_VENDOR_NEGOTIATION",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_CUSTOMER_ESCALATION",
+      "elapsed_ms": 190330.3,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_CUSTOMER_ESCALATION",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T22:03:21.651179+00:00",
+            "fault_mode": "BL_CUSTOMER_ESCALATION",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T22:06:31.979885+00:00",
+            "fault_mode": "BL_CUSTOMER_ESCALATION",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T22:06:31.980620+00:00",
+            "fault_mode": "BL_CUSTOMER_ESCALATION",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_REFUND_REASONING",
+      "elapsed_ms": 181806.6,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_REFUND_REASONING",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T22:06:31.992207+00:00",
+            "fault_mode": "BL_REFUND_REASONING",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T22:09:33.798252+00:00",
+            "fault_mode": "BL_REFUND_REASONING",
+            "data": {
+              "raw": "",
+              "error": "ReAct loop exceeded 8 iterations without a Final Answer"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T22:09:33.798276+00:00",
+            "fault_mode": "BL_REFUND_REASONING",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    },
+    {
+      "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+      "elapsed_ms": 577682.5,
+      "error": null,
+      "lkw": {
+        "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+        "checkpoints": [
+          {
+            "step": "TASK_START",
+            "timestamp": "2026-06-10T22:09:33.805184+00:00",
+            "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+            "data": {
+              "address": {
+                "street_address": "123 Main St",
+                "city": "Springfield",
+                "state": "IL",
+                "country": "US",
+                "zip_code": 62701,
+                "compliance_jurisdiction": "UNKNOWN",
+                "export_restricted": true
+              },
+              "item_count": 3
+            }
+          },
+          {
+            "step": "FINAL_ANSWER",
+            "timestamp": "2026-06-10T22:19:11.483839+00:00",
+            "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+            "data": {
+              "raw": "",
+              "error": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)"
+            }
+          },
+          {
+            "step": "SAVE_DONE",
+            "timestamp": "2026-06-10T22:19:11.483885+00:00",
+            "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+            "data": {
+              "saved": false,
+              "reason": "benchmark_mode"
+            }
+          }
+        ],
+        "missing_steps": [
+          "QUOTE_DONE",
+          "CARRIER_DONE",
+          "TRACKING_DONE"
+        ],
+        "rip_summary": {
+          "reachability": [
+            "TASK_START",
+            "FINAL_ANSWER",
+            "SAVE_DONE"
+          ],
+          "infection_point": "SAVE_DONE",
+          "propagation_depth": 3,
+          "missing_steps": [
+            "QUOTE_DONE",
+            "CARRIER_DONE",
+            "TRACKING_DONE"
+          ]
+        }
+      }
+    }
+  ],
+  "rip_analysis": [
+    {
+      "fault_mode": "FM_1_2",
+      "elapsed_ms": 9677.8,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "CARRIER_DONE",
+        "ESCALATION_CHECK",
+        "FINAL_ANSWER",
+        "QUOTE_DONE",
+        "SAVE_DONE",
+        "TASK_START",
+        "TRACKING_DONE"
+      ],
+      "steps_lost": [],
+      "infection_point": "CARRIER_DONE",
+      "propagation_depth": 0,
+      "error": null
+    },
+    {
+      "fault_mode": "FM_2_2",
+      "elapsed_ms": 735973.5,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "FM_2_5",
+      "elapsed_ms": 218042.1,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "FM_3_1",
+      "elapsed_ms": 44799.2,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "QUOTE_DONE",
+        "SAVE_DONE",
+        "TASK_START",
+        "TRACKING_DONE"
+      ],
+      "steps_lost": [],
+      "infection_point": "QUOTE_DONE",
+      "propagation_depth": 1,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_SHIPMENT_LOST",
+      "elapsed_ms": 178484.7,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_INVENTORY_MISMATCH",
+      "elapsed_ms": 137112.3,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_VENDOR_NEGOTIATION",
+      "elapsed_ms": 206233.0,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_CUSTOMER_ESCALATION",
+      "elapsed_ms": 190330.3,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_REFUND_REASONING",
+      "elapsed_ms": 181806.6,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    },
+    {
+      "fault_mode": "BL_COMPLIANCE_AMBIGUITY",
+      "elapsed_ms": 577682.5,
+      "baseline_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "fault_steps": [
+        "FINAL_ANSWER",
+        "SAVE_DONE",
+        "TASK_START"
+      ],
+      "steps_lost": [],
+      "infection_point": "SAVE_DONE",
+      "propagation_depth": 3,
+      "error": null
+    }
+  ]
+}
