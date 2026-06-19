@@ -300,36 +300,7 @@ Make a copy of this sheet with your name. Score each run independently using the
 
 ---
 
-## 7. Deepak's Completed Assessment (Reference)
-
-| Agent | TP | Partial TP | TN | FP | FN | Inconclusive |
-|---|---|---|---|---|---|---|
-| PaymentAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| CurrencyAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| EmailServiceAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| ProductCatalogAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| RecommendationAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| AdServiceAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| ShippingService | 7 | 2 | 1 | 0 | 1 | 0 |
-| **TOTAL** | **55** | **2** | **7** | **0** | **1** | **0** |
-
-### Key Findings from Deepak's Assessment
-
-1. **Mock-based agents (6 agents): 100% accurate** — 48/48 fault modes correctly identified with 4/4 score. Zero FP, zero FN.
-
-2. **ShippingService rerun with qwen2.5-coder:14b: 0 INCONCLUSIVE** — All 5 previously INCONCLUSIVE fault modes (FM_2_2, FM_2_5, BL_SHIPMENT_LOST, BL_INVENTORY_MISMATCH, BL_COMPLIANCE_AMBIGUITY) now complete successfully. Final score: 7 TP, 2 Partial TP, 1 TN, 1 FN, 0 INCONCLUSIVE.
-
-3. **System bug found in FM_3_1 for ShippingService:** The RIP depth calculator reports depth=1 but actual missing steps = 2 (CARRIER_DONE + ESCALATION_CHECK both absent). ESCALATION_CHECK was not included in the expected steps checker. Bug persists under 14B model — this is a code-level issue, not a model issue.
-
-4. **BL_VENDOR_NEGOTIATION: FN under 1B → TP under 14B** — The 1B model ignored vendor injection and selected UPS naturally. The 14B model correctly reflects forced-vendor routing at CARRIER_DONE. This is a model-capability-dependent detectability finding.
-
-5. **BL_CUSTOMER_ESCALATION: Partial TP under 1B → full TP under 14B** — Under 1B, automated RIP reported infection_point=null. Under 14B, infection correctly appears at ESCALATION_CHECK.
-
-6. **BL_COMPLIANCE_AMBIGUITY is a confirmed FN** — qwen2.5-coder:14b resolved the injected compliance ambiguity gracefully (all 7 steps complete, no infection signal). The 1B model crashed; the 14B model passed through. Fault detectability can be model-capability-dependent: more capable models may absorb semantic ambiguity injections without observable signal.
-
----
-
-## 8. Instructions for Assessors
+## 7. Instructions for Assessors
 
 1. Read this rubric fully before starting
 2. Open the JSON files listed for each agent
