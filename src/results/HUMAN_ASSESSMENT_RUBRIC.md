@@ -170,25 +170,25 @@ This table tells you what the correct answer should be for each fault mode. Comp
 
 ---
 
-### 5.7 ShippingService (Llama 3.2:1b — Real LLM)
-**JSON files:** `src/shippingservice/fm31_lkw_rip_evidence.json`, `vendor/escalation/refund/inventory/compliance_lkw_rip_evidence.json`  
+### 5.7 ShippingService (qwen2.5-coder:14b — Real LLM)
+**JSON file:** `src/shippingservice/lkw_rip_results.json` (qwen2.5-coder:14b batch run, SPEED HPC A100 MIG)  
 **Checkpoint chain:** `TASK_START → QUOTE_DONE → CARRIER_DONE → TRACKING_DONE → ESCALATION_CHECK → FINAL_ANSWER → SAVE_DONE`
 
-> **Important:** ShippingService uses a real LLM (Llama 3.2:1b). Some runs hit LLM timeout or ReAct loop exhaustion. If the faulted `lkw` field is empty (`{}`) or the error field shows "ReAct loop exceeded" or "HTTPConnectionPool timeout", mark as **INCONCLUSIVE** — you cannot distinguish fault behavior from model capability failure.
+> **Note:** Rerun with qwen2.5-coder:14b resolved all 5 previously INCONCLUSIVE results from the Llama 3.2:1b run. All 10 fault modes are now assessable.
 
 | Fault Mode | Expected Infection Point | Expected Depth | Expected Evidence | Notes |
 |---|---|---|---|---|
-| NONE | — | 0 | carrier=UPS, cost=15.99, tracking=1234567890 | All evidence files show clean baseline |
-| FM_3_1 | `QUOTE_DONE` | **2** | PREMATURE-0000, cost=0.0, CARRIER_DONE + ESCALATION_CHECK missing | System reports depth=1 (bug — ESCALATION_CHECK not in checker list) |
-| FM_1_2 | `CARRIER_DONE` | 0 | carrier=Unknown, tracking_id=raw JSON string | All 7 steps reach but carrier/tracking corrupted |
-| FM_2_2 | — | — | LLM HTTP timeout | **INCONCLUSIVE** |
-| FM_2_5 | — | — | ReAct loop exceeded 8 iterations | **INCONCLUSIVE** |
-| BL_SHIPMENT_LOST | — | — | ReAct loop exceeded 8 iterations | **INCONCLUSIVE** |
-| BL_INVENTORY_MISMATCH | — | — | LKW empty `{}` — LLM failed before any checkpoint | **INCONCLUSIVE** |
-| BL_VENDOR_NEGOTIATION | — | — | infection_point=null, output identical to baseline | **FN** — LLM ignored injection |
-| BL_CUSTOMER_ESCALATION | `ESCALATION_CHECK` | 0 | escalation_required=True (was False) — visible in data, but automated RIP reports null | **Partial TP** — human-detectable, automated missed |
-| BL_REFUND_REASONING | `QUOTE_DONE` | 0 | cost_usd=-15.99 (was +15.99) | TP ✅ |
-| BL_COMPLIANCE_AMBIGUITY | — | — | LKW empty `{}` — LLM exhausted retries | **INCONCLUSIVE** |
+| NONE | — | 0 | All 7 steps clean, no infection | TN |
+| FM_3_1 | `TRACKING_DONE` | **1** (bug: actual=2) | CARRIER_DONE + ESCALATION_CHECK missing; depth reports 1 | Partial TP — RIP depth bug persists |
+| FM_1_2 | `SAVE_DONE` | 2 | CARRIER_DONE, TRACKING_DONE, ESCALATION_CHECK missing | TP |
+| FM_2_2 | `CARRIER_DONE` | 0 | All 7 steps, hallucinated carrier data at CARRIER_DONE | TP |
+| FM_2_5 | `CARRIER_DONE` | 0 | All 7 steps, stale quote value at CARRIER_DONE | TP |
+| BL_SHIPMENT_LOST | None detected | 1 | SAVE_DONE missing; no infected checkpoint identified (depth=1 auto-detectable) | Partial TP — structural only |
+| BL_INVENTORY_MISMATCH | `QUOTE_DONE` | 0 | All 7 steps, inflated item count at QUOTE_DONE | TP |
+| BL_VENDOR_NEGOTIATION | `CARRIER_DONE` | 0 | All 7 steps, forced vendor at CARRIER_DONE | TP (was FN under 1B) |
+| BL_CUSTOMER_ESCALATION | `ESCALATION_CHECK` | 0 | All 7 steps, escalation_required=True at ESCALATION_CHECK | TP (was Partial TP under 1B) |
+| BL_REFUND_REASONING | `QUOTE_DONE` | 0 | All 7 steps, cost_usd negative at QUOTE_DONE | TP |
+| BL_COMPLIANCE_AMBIGUITY | None detected | 0 | All 7 steps complete, no infection — 14B model resolved ambiguity | FN — model-capability-dependent |
 
 ---
 
@@ -290,14 +290,14 @@ Make a copy of this sheet with your name. Score each run independently using the
 | NONE | — | — | — | — | — | TN / FP |
 | FM_3_1 | | | | | /4 | |
 | FM_1_2 | | | | | /4 | |
-| FM_2_2 | — | — | — | — | — | INCONCLUSIVE |
-| FM_2_5 | — | — | — | — | — | INCONCLUSIVE |
-| BL_SHIPMENT_LOST | — | — | — | — | — | INCONCLUSIVE |
-| BL_INVENTORY_MISMATCH | — | — | — | — | — | INCONCLUSIVE |
+| FM_2_2 | | | | | /4 | |
+| FM_2_5 | | | | | /4 | |
+| BL_SHIPMENT_LOST | | | | | /4 | |
+| BL_INVENTORY_MISMATCH | | | | | /4 | |
 | BL_VENDOR_NEGOTIATION | | | | | /4 | |
 | BL_CUSTOMER_ESCALATION | | | | | /4 | |
 | BL_REFUND_REASONING | | | | | /4 | |
-| BL_COMPLIANCE_AMBIGUITY | — | — | — | — | — | INCONCLUSIVE |
+| BL_COMPLIANCE_AMBIGUITY | | | | | /4 | |
 
 ---
 
@@ -311,20 +311,22 @@ Make a copy of this sheet with your name. Score each run independently using the
 | ProductCatalogAgent | 8 | 0 | 1 | 0 | 0 | 0 |
 | RecommendationAgent | 8 | 0 | 1 | 0 | 0 | 0 |
 | AdServiceAgent | 8 | 0 | 1 | 0 | 0 | 0 |
-| ShippingService | 1 | 3 | 1 | 0 | 1 | 5 |
-| **TOTAL** | **49** | **3** | **7** | **0** | **1** | **5** |
+| ShippingService | 7 | 2 | 1 | 0 | 1 | 0 |
+| **TOTAL** | **55** | **2** | **7** | **0** | **1** | **0** |
 
 ### Key Findings from Deepak's Assessment
 
 1. **Mock-based agents (6 agents): 100% accurate** — 48/48 fault modes correctly identified with 4/4 score. Zero FP, zero FN.
 
-2. **ShippingService (real LLM): Significantly degraded** — 5 out of 10 fault modes are INCONCLUSIVE because Llama 3.2:1b was too small (ReAct loop/timeout). This makes it impossible to attribute failure to the injected fault vs model capability. Requires rerun with larger model.
+2. **ShippingService rerun with qwen2.5-coder:14b: 0 INCONCLUSIVE** — All 5 previously INCONCLUSIVE fault modes (FM_2_2, FM_2_5, BL_SHIPMENT_LOST, BL_INVENTORY_MISMATCH, BL_COMPLIANCE_AMBIGUITY) now complete successfully. Final score: 7 TP, 2 Partial TP, 1 TN, 1 FN, 0 INCONCLUSIVE.
 
-3. **System bug found in FM_3_1 for ShippingService:** The RIP depth calculator reports depth=1 but actual missing steps = 2 (CARRIER_DONE + ESCALATION_CHECK both absent). ESCALATION_CHECK was not included in the expected steps checker.
+3. **System bug found in FM_3_1 for ShippingService:** The RIP depth calculator reports depth=1 but actual missing steps = 2 (CARRIER_DONE + ESCALATION_CHECK both absent). ESCALATION_CHECK was not included in the expected steps checker. Bug persists under 14B model — this is a code-level issue, not a model issue.
 
-4. **BL_VENDOR_NEGOTIATION is a confirmed FN:** The LLM naturally selected UPS regardless of the vendor injection. Output identical to baseline. Fault injection did not override LLM reasoning.
+4. **BL_VENDOR_NEGOTIATION: FN under 1B → TP under 14B** — The 1B model ignored vendor injection and selected UPS naturally. The 14B model correctly reflects forced-vendor routing at CARRIER_DONE. This is a model-capability-dependent detectability finding.
 
-5. **BL_CUSTOMER_ESCALATION is Partial TP:** The escalation_required flag correctly changed (False→True) and is visible to a human reviewer. But the automated RIP scanner reported infection_point=null because it only checks structural step differences, not boolean flag changes in LKW data.
+5. **BL_CUSTOMER_ESCALATION: Partial TP under 1B → full TP under 14B** — Under 1B, automated RIP reported infection_point=null. Under 14B, infection correctly appears at ESCALATION_CHECK.
+
+6. **BL_COMPLIANCE_AMBIGUITY is a confirmed FN** — qwen2.5-coder:14b resolved the injected compliance ambiguity gracefully (all 7 steps complete, no infection signal). The 1B model crashed; the 14B model passed through. Fault detectability can be model-capability-dependent: more capable models may absorb semantic ambiguity injections without observable signal.
 
 ---
 
@@ -333,7 +335,7 @@ Make a copy of this sheet with your name. Score each run independently using the
 1. Read this rubric fully before starting
 2. Open the JSON files listed for each agent
 3. Fill in the scoring sheet above **independently** (do not compare with each other or Deepak until all three are done)
-4. For ShippingService: mark INCONCLUSIVE rows as-is; only score the 5 assessable rows
+4. For ShippingService: all 10 fault modes are now assessable (rerun with qwen2.5-coder:14b resolved all previously INCONCLUSIVE results)
 5. Return your completed scoring sheet to Deepak for cross-validation aggregation
 6. If you disagree with an expected value in Section 5, note it — disagreements are valid findings
 
