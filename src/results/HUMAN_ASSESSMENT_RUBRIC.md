@@ -1,4 +1,4 @@
-# Human Assessment Rubric — LLM-MAS Fault Injection Root Cause Analysis
+﻿# Human Assessment Rubric — LLM-MAS Fault Injection Root Cause Analysis
 **Author:** Deepak Sunil Chavan, Concordia University  
 **Purpose:** Independent human evaluation of agent-produced root cause analysis  
 **Date:** 2026-06-18  
@@ -299,18 +299,3 @@ Make a copy of this sheet with your name. Score each run independently using the
 | BL_COMPLIANCE_AMBIGUITY | | | | | /4 | |
 
 ---
-
-## 7. Instructions for Assessors
-
-1. Read Sections 1–5 fully before scoring anything.
-2. For each agent, open `src/<agentname>/<agentname>_fault_results.json` and score each fault mode using the 4 criteria in Section 3.
-3. Compare your results against the expected values in Section 5, then fill in the Section 6 scoring sheet.
-4. **Do not discuss your scores with other assessors until all three are submitted** — independence is required for valid cross-validation.
-5. If you disagree with an expected value in Section 5, note it in the comments column. Disagreements are valid findings.
-6. When done, save your file as `HUMAN_ASSESSMENT_RUBRIC_<yourname>.md` and share it with Deepak before **June 28**.
-
-> **ShippingService:** Use `src/shippingservice/lkw_rip_results.json`. All 10 fault modes are scoreable.
-
----
-
-*Repo: `https://github.com/Deepak272000/LLM-MAS-fault-injection`*
