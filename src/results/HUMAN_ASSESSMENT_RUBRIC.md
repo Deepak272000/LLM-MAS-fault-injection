@@ -2,7 +2,6 @@
 **Author:** Deepak Sunil Chavan, Concordia University  
 **Purpose:** Independent human evaluation of agent-produced root cause analysis  
 **Date:** 2026-06-18  
-**To be assessed by:** Payman, Pyrush (independently, do NOT discuss scores before completing)
 
 ---
 
@@ -330,14 +329,13 @@ Make a copy of this sheet with your name. Score each run independently using the
 
 ---
 
-## 8. Instructions for Payman and Pyrush
+## 8. Instructions for Assessors
 
 1. Read this rubric fully before starting
 2. Open the JSON files listed for each agent
-3. Fill in the scoring sheet above **independently** (do not compare with each other or Deepak until all three are done)
+3. Fill in the scoring sheet above **independently**
 4. For ShippingService: all 10 fault modes are now assessable (rerun with qwen2.5-coder:14b resolved all previously INCONCLUSIVE results)
-5. Return your completed scoring sheet to Deepak for cross-validation aggregation
-6. If you disagree with an expected value in Section 5, note it — disagreements are valid findings
+5. If you disagree with an expected value in Section 5, note it — disagreements are valid findings
 
 ---
 
