@@ -1,9 +1,89 @@
-<!-- <p align="center">
-<img src="/src/frontend/static/icons/Hipster_HeroLogoMaroon.svg" width="300" alt="Online Boutique" />
-</p> -->
-![Continuous Integration](https://github.com/GoogleCloudPlatform/microservices-demo/workflows/Continuous%20Integration%20-%20Main/Release/badge.svg)
+# LLM-MAS Fault Injection Study
 
-**Online Boutique** is a cloud-first microservices demo application.  The application is a
+**Author:** Deepak Sunil Chavan, Concordia University  
+**Platform:** Concordia SPEED HPC (`deepak/fault-injection` branch)  
+**Date:** 2026-06-18
+
+---
+
+## Overview
+
+This repository contains the fault injection study for a **LLM-based Multi-Agent System (LLM-MAS)** built on the Online Boutique microservices architecture. Seven microservice agents were instrumented with **LKW (Last Known Well) checkpoints** and subjected to structured fault injection using a MAST-aligned fault taxonomy.
+
+The study evaluates whether agent-level root cause analysis can reliably detect, locate, and characterize injected faults using the **RIP (Reachability → Infection → Propagation)** analysis framework.
+
+---
+
+## Key Results
+
+| Agent | TP | Partial TP | TN | FP | FN | Inconclusive |
+|---|---|---|---|---|---|---|
+| PaymentAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| CurrencyAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| EmailServiceAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| ProductCatalogAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| RecommendationAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| AdServiceAgent | 8 | 0 | 1 | 0 | 0 | 0 |
+| ShippingService | 7 | 2 | 1 | 0 | 1 | 0 |
+| **TOTAL** | **55** | **2** | **7** | **0** | **1** | **0** |
+
+> ShippingService runs a live **qwen2.5-coder:14b** LLM (Ollama, SPEED HPC A100 MIG) via ReAct loop. All other agents use deterministic mock-based injection.
+
+---
+
+## Reports
+
+| Document | Description |
+|---|---|
+| [Full Results Report](src/results/RESULTS_REPORT.md) | Stability analysis, per-agent fault injection results, HITL tier classification, cross-agent propagation, key findings |
+| [Human Assessment Rubric](src/results/HUMAN_ASSESSMENT_RUBRIC.md) | Scoring criteria, expected values table, and Deepak's completed assessment for cross-validation |
+
+---
+
+## Fault Taxonomy
+
+Faults are drawn from the **MAST (Multi-Agent System Testing)** taxonomy:
+
+| Category | Fault Mode | Description |
+|---|---|---|
+| FM-3.1 | Premature Termination | Agent returns before completing all workflow steps |
+| FM-2.2 | Hallucinated Output | Agent fabricates tool results or data values |
+| FM-2.5 | Ignored Input | Agent silently replaces valid input with stale/wrong values |
+| FM-1.2 | Incorrect Routing | Agent selects wrong action or method during planning |
+| BL-* | Business Logic | Domain-specific violations (overcharge, lost shipment, etc.) |
+
+---
+
+## HITL Tier Classification
+
+| Tier | Detection Method | Count |
+|---|---|---|
+| Tier 1 — Structural | Auto-detectable from step-trace diff | 11 |
+| Tier 2 — Flag-Detectable | Requires flag monitor on LKW data | 40 |
+| Tier 3 — Silent | Requires semantic validation | 7 |
+
+---
+
+## Repository Structure
+
+```
+src/
+  results/
+    RESULTS_REPORT.md          ← Full results and analysis
+    HUMAN_ASSESSMENT_RUBRIC.md ← Scoring rubric and completed assessment
+  paymentagent/                ← PaymentAgent + fault injection
+  currencyagent/               ← CurrencyAgent + fault injection
+  emailserviceagent/           ← EmailServiceAgent + fault injection
+  productcatalogagent/         ← ProductCatalogAgent + fault injection
+  recommendationagent/         ← RecommendationAgent + fault injection
+  adserviceagent/              ← AdServiceAgent + fault injection
+  shippingservice/             ← ShippingService (live LLM, ReAct loop)
+  hitl_detector.py             ← Automated HITL tier classifier
+```
+
+---
+
+*Base application: [Google Online Boutique](https://github.com/GoogleCloudPlatform/microservices-demo) (modified for LLM-MAS research)*  The application is a
 web-based e-commerce app where users can browse items, add them to the cart, and purchase them.
 
 Google uses this application to demonstrate how developers can modernize enterprise applications using Google Cloud products, including: [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine), [Cloud Service Mesh (CSM)](https://cloud.google.com/service-mesh), [gRPC](https://grpc.io/), [Cloud Operations](https://cloud.google.com/products/operations), [Spanner](https://cloud.google.com/spanner), [Memorystore](https://cloud.google.com/memorystore), [AlloyDB](https://cloud.google.com/alloydb), and [Gemini](https://ai.google.dev/). This application works on any Kubernetes cluster.
