@@ -21,11 +21,35 @@ import hipstershop_pb2_grpc
 # Import the compiled LangGraph graph
 from catalog_graph import graph
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for standalone service container
+    def boundary_contract(name, expected, observed, **_kwargs):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+            "detail": None,
+            "violations": [],
+        }
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 CATALOG_PATH = os.getenv("PRODUCT_CATALOG_JSON", "products.json")
 GRPC_PORT    = os.getenv("GRPC_PORT", "3550")
+
+def record_catalog_boundary(name: str, expected, observed) -> None:
+    boundary = boundary_contract(
+        name,
+        expected,
+        observed,
+        validators={"__list__": lambda value: all(isinstance(item, str) and item for item in value)},
+    )
+    print(f"[BOUNDARY_CHECK] {boundary}")
 
 # ---------------------------------------------------------------------------
 # Service implementation
@@ -65,9 +89,10 @@ class ProductCatalogService(hipstershop_pb2_grpc.ProductCatalogServiceServicer):
     def ListProducts(self, request, context):
         try:
             print(f"[server] ListProducts called")
-            return hipstershop_pb2.ListProductsResponse(
-                products=[self._convert(p) for p in self.db]
-            )
+            products = [self._convert(p) for p in self.db]
+            product_ids = [product.id for product in products]
+            record_catalog_boundary("catalog_list_to_response", product_ids, product_ids)
+            return hipstershop_pb2.ListProductsResponse(products=products)
         except Exception as e:
             print(f"[server] ListProducts error:\n{traceback.format_exc()}")
             context.set_code(grpc.StatusCode.INTERNAL)
@@ -82,7 +107,9 @@ class ProductCatalogService(hipstershop_pb2_grpc.ProductCatalogServiceServicer):
                 context.set_code(grpc.StatusCode.NOT_FOUND)
                 context.set_details(f"product {request.id!r} not found")
                 return hipstershop_pb2.Product()
-            return self._convert(p)
+            product = self._convert(p)
+            record_catalog_boundary("catalog_get_to_response", [request.id], [product.id])
+            return product
         except Exception as e:
             print(f"[server] GetProduct error:\n{traceback.format_exc()}")
             context.set_code(grpc.StatusCode.INTERNAL)
@@ -99,6 +126,8 @@ class ProductCatalogService(hipstershop_pb2_grpc.ProductCatalogServiceServicer):
             print(f"[server] Graph output: {output}")
 
             pb_results = [self._convert(p) for p in output.get("results", [])]
+            result_ids = [product.id for product in pb_results]
+            record_catalog_boundary("catalog_search_to_response", result_ids, result_ids)
             print(f"[server] Returning {len(pb_results)} products")
             return hipstershop_pb2.SearchProductsResponse(results=pb_results)
 

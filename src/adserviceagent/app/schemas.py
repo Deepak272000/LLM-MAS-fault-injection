@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
 class AdAgentRequest(BaseModel):
     context_keys: List[str] = Field(default_factory=list)
     instruction: Optional[str] = None
+    handoff_contract: Optional[Dict[str, Any]] = None
 
 
 class AdItem(BaseModel):

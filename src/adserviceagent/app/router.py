@@ -19,6 +19,7 @@ def get_ads(request: AdAgentRequest):
             {
                 "instruction": request.instruction or "",
                 "context_keys": request.context_keys or [],
+                "handoff_contract": request.handoff_contract,
             }
         )
         return result["final_response"]

@@ -2,11 +2,26 @@ import importlib
 from app.grpc_client import ProductCatalogGrpcClient
 import app.fault_injection as fi
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for isolated agent execution
+    def boundary_contract(name, expected, observed, **_kwargs):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+            "detail": None,
+            "violations": [],
+        }
+
 client = ProductCatalogGrpcClient()
 
 
 class ProductCatalogAgent:
-    def run(self, query: str, product_ids=None):
+    def run(self, query: str, product_ids=None, handoff_contract: dict | None = None):
         fi.clear_lkw()
         q = query.lower().strip()
         action = "get_product" if product_ids else (
@@ -54,9 +69,29 @@ class ProductCatalogAgent:
         # BL_WRONG_CATEGORY
         data, category_wrong = fi.maybe_wrong_category(data)
 
+        observed_ids = [item.get("id") for item in data if isinstance(item, dict)]
+        if handoff_contract is not None:
+            boundary = boundary_contract(
+                handoff_contract.get("boundary", "catalog_to_recommendation"),
+                handoff_contract.get("expected"),
+                observed_ids,
+                validators={"__list__": lambda value: all(isinstance(item, str) and item for item in value)},
+            )
+            fi.record_checkpoint("BOUNDARY_CHECK", {
+                "boundary": boundary["boundary"],
+                "alert": boundary["alert"],
+                "status": boundary["status"],
+                "expected": boundary["expected"],
+                "observed": boundary["observed"],
+                "difference": boundary["difference"],
+                "detail": boundary["detail"],
+                "violations": boundary["violations"],
+            })
+
         fi.record_checkpoint("CATALOG_DONE", {
             "action": action,
             "count": len(data),
+            "product_ids": observed_ids,
             "hallucinated": hallucinated,
             "query_tampered": query_tampered,
             "action_swapped": fi.FAULT_MODE == "FM_1_2",

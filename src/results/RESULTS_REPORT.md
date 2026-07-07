@@ -2,6 +2,7 @@
 **Author:** Deepak Sunil Chavan, Concordia University  
 **Platform:** Concordia SPEED HPC (`deepak/fault-injection` branch)  
 **Date:** 2026-06-18  
+**Updated:** 2026-07-07 — boundary validation and HITL readiness refresh  
 
 ---
 
@@ -10,7 +11,9 @@
 2. [Agent-Level Fault Injection — All 7 Agents](#2-agent-level-fault-injection)
 3. [HITL Tier Classification — Automated](#3-hitl-tier-classification)
 4. [Cross-Agent Fault Propagation](#4-cross-agent-fault-propagation)
-5. [Key Findings Summary](#5-key-findings-summary)
+5. [Boundary Validation Improvements](#5-boundary-validation-improvements)
+6. [Key Findings Summary](#6-key-findings-summary)
+7. [Limitations](#7-limitations)
 
 ---
 
@@ -276,7 +279,7 @@ Each agent is instrumented with **LKW (Last Known Well) checkpoints**. gRPC depe
 | Baseline (NONE) | 6 | 1 | **7** | — |
 | **Total fault modes** | **48** | **10** | **58** | |
 
-> **Key Finding:** FM-2.2 (hallucination) is **Tier 3 across all 7 agents** — zero structural signal, zero operational flag. Detection requires inter-agent output validation contracts (e.g. range checks, entity existence validation) at every agent boundary.  
+> **Key Finding:** FM-2.2 (hallucination) is **Tier 3 before boundary validation** — zero structural signal and no reliable step-loss signal. The July boundary-validation refresh adds explicit `BOUNDARY_CHECK` contracts so high-risk hallucinated handoffs are now observable through range checks, entity existence checks, and schema/value validators at agent boundaries.  
 > **ShippingService note (qwen2.5-coder:14b):** With the 14B model, all 10 fault modes complete successfully (0 INCONCLUSIVE). BL_COMPLIANCE_AMBIGUITY is a **confirmed FN** — the 14B model resolved the injected ambiguity without any fault signal (all 7 steps, infection_point=None), demonstrating LLM robustness to semantic ambiguity injection. BL_VENDOR_NEGOTIATION (confirmed FN under 1B model) became **TP** under 14B — the stronger model correctly reflects vendor-forced routing at CARRIER_DONE. This model-capability-dependent detectability gap is a novel finding for LLM-MAS fault injection methodology.
 
 ---
@@ -335,9 +338,66 @@ FM-2.2 selected because it is the only fault class with depth=0 at the upstream 
 
 ---
 
-## 5. Key Findings Summary
+## 5. Boundary Validation Improvements
 
-### Structural Pattern Across All 6 Agents
+**Generated artifacts:** `cross_agent_propagation.py`, `boundary_detection_runner.py`, `repo_hitl_audit.py`  
+**Latest evidence timestamp:** 2026-07-07T03:15Z  
+**Purpose:** address the professor's concern that default LKW/RIP traces can miss silent boundary failures unless explicit flags, gates, and probes make semantic deviations observable.
+
+### 5.1 Repo-Wide Boundary Coverage
+
+The repository audit now reports complete boundary-flag coverage for all agent/service groups in scope.
+
+| Coverage Metric | Result |
+|---|---:|
+| Python groups scanned | 19 |
+| Groups with boundary flags | 16 |
+| Agent/service groups missing flags | **0** |
+| Boundary proxy groups | `shippingservice -> shippingagent` |
+
+**Flagged agent/service groups:** `adserviceagent`, `currencyagent`, `emailservice`, `emailserviceagent`, `paymentagent`, `productcatalogagent`, `productcatalogservice`, `recommendationagent`, `recommendationservice`, `shippingagent`, `shippingservice`, `shoppingassistantservice`.
+
+`shippingservice` is intentionally counted through the compatibility shim to `shippingagent`, where the real shipping orchestration and boundary checks live. This avoids duplicating logic while preserving service/agent separation.
+
+### 5.2 Cross-Agent Boundary Evidence After Improvements
+
+The regenerated cross-agent study now records `BOUNDARY_CHECK` in both upstream and downstream traces for Chain A, and in the upstream ProductCatalogAgent trace for Chain B.
+
+| Chain | Boundary | Expected | Observed | Alert | Downstream Infection |
+|---|---|---:|---:|---|---|
+| A: CurrencyAgent -> PaymentAgent | `currency_to_payment` | 9 EUR | 1337 EUR | **Yes** (`delta=1328`) | None |
+| B: ProductCatalogAgent -> RecommendationAgent | `catalog_to_recommendation` | `PROD-001` | `HALLUCINATED-001` | **Yes** (`missing/extra`) | None |
+
+**Summary:** 2/2 cross-agent chains produced boundary alerts, 2/2 were signal escapes, and 2/2 downstream agents remained structurally healthy. This preserves the original finding that downstream LKW alone is insufficient, but now shows that explicit boundary contracts make the silent propagation observable.
+
+### 5.3 Shipping Boundary Evidence
+
+The boundary detection runner combines Chain A/B with shipping-specific internal handoff probes.
+
+| Scenario | Failure Class | Boundary Alerts | Interpretation |
+|---|---|---:|---|
+| `shipping_clean` | `ok` | 0 | Clean quote/carrier/tracking path |
+| `shipping_fm_2_2` | `fault_induced` | 1 | Hallucinated carrier/service level caught at `carrier_to_tracking` |
+| `shipping_fm_2_5` | `fault_induced` | 1 | Quote-to-carrier handoff deviation caught at `quote_to_carrier_selection` |
+| `shipping_infra_timeout` | `infra_timeout` | 0 | Classified separately as infrastructure/runtime failure |
+
+Aggregate boundary summary: 4 boundary alerts, 4 signal escapes, 2 fault-induced shipping cases, 1 infrastructure timeout, and 2 manual-review candidates.
+
+### 5.4 Updated Development Conclusion
+
+The development improvements change the interpretation of the original HITL result:
+
+- **Before boundary contracts:** FM-2.2 hallucinations were structurally silent and required human semantic review.
+- **After boundary contracts:** the same high-risk handoffs emit explicit `BOUNDARY_CHECK` records with expected vs observed payloads, differences, and violations.
+- **Remaining human role:** humans still review high-impact alerts, but the system now has machine-readable evidence for why the handoff is suspicious.
+
+This satisfies the requested development goal: LKW/RIP is no longer only a step-reachability trace; it now includes boundary-level semantic probes where silent propagation previously escaped.
+
+---
+
+## 6. Key Findings Summary
+
+### Structural Pattern Across Fault Classes
 
 | MAST Class | Fault Mode | Infection Stage | Depth | HITL Tier | HITL Method |
 |---|---|---|---|---|---|
@@ -367,7 +427,7 @@ Yes. 64/64 mode-runs across all 7 agents are STABLE_PASS or STABLE_FAULT. Zero U
 |---|---|---|
 | Auto-detectable (Tier 1) | FM-3.1, BL_CARD_DECLINED, BL_CURRENCY_UNAVAILABLE | Step-trace monitor, no human review needed for detection |
 | Flag-monitorable (Tier 2) | FM-2.5, FM-1.2, all BL (save_skipped, double_charge, etc.) | Requires human alert rule on LKW flag |
-| Silently absorbed (Tier 3) | FM-2.2 in all 6 agents | **Requires inter-agent output validation contracts** |
+| Boundary-alerted after refresh | FM-2.2 cross-agent handoffs and selected service handoffs | `BOUNDARY_CHECK` contract plus human review for high-impact alerts |
 
 **RQ5 — Are observations stable across repeated runs?**  
 100% stability rate. 0/64 UNSTABLE. Results are reproducible on Concordia SPEED HPC — both for mock-based agents (54 mode-runs) and the live-LLM ShippingService (10 mode-runs, per-fault-mode stability matrices).
@@ -375,13 +435,13 @@ Yes. 64/64 mode-runs across all 7 agents are STABLE_PASS or STABLE_FAULT. Zero U
 ### Critical Architectural Finding
 
 > **FM-2.2 (hallucinated output) is the highest-risk fault class in a microservice LLM-MAS.**  
-> - At the single-agent level: depth=0, no operational flag, no structural alert.  
-> - At the system level: a fault-free downstream agent propagates the corrupted value to business harm with no LKW signal at either hop.  
-> - Mitigation requires **inter-agent output validation contracts** at every agent boundary — range checks, entity existence checks, schema validation — not just per-agent LKW instrumentation.
+> - At the single-agent level before mitigation: depth=0, no structural alert.  
+> - At the system level: a fault-free downstream agent can propagate corrupted values to business harm.  
+> - After the boundary-validation refresh: explicit `BOUNDARY_CHECK` records make these handoff deviations observable through range checks, entity existence checks, schema validation, and expected-vs-observed payload comparison.
 
 ---
 
-## 6. Limitations
+## 7. Limitations
 
 ### L1 — LLM Not in the Loop for 6 of 7 Agents
 
@@ -415,6 +475,8 @@ The human assessment rubric has been distributed to two independent assessors (c
 - `src/results/stability_summary.json` — RQ5 stability matrices (mock-based agents)
 - `src/results/hitl_classification_report.json` — automated HITL tier classification
 - `src/results/cross_agent_propagation.json` — cross-agent chain data
+- `src/results/boundary_detection_summary.json` — boundary validation and shipping handoff summary
+- `src/results/repo_hitl_audit.json` — repo-wide HITL and boundary coverage audit
 - `src/results/stability_matrix_<agent>.json` — per-agent 3-run fingerprints (×6)
 - `src/shippingservice/hitl_classification_report.json` — ShippingService HITL tier classification
 - `src/shippingservice/lkw_rip_results.json` — ShippingService full LKW+RIP results

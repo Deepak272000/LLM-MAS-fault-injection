@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T12:18:01.321547+00:00",
+  "generated_at": "2026-07-07T03:15:03.290040+00:00",
   "chains": [
     {
       "chain": "A",
@@ -10,10 +10,61 @@
       "propagated_units": 1337,
       "overcharge_eur": 1328,
       "overcharge_pct": 14755.6,
+      "boundary_contract": {
+        "boundary": "currency_to_payment",
+        "alert": true,
+        "status": "signal_escape",
+        "expected": 9,
+        "observed": 1337,
+        "difference": {
+          "delta": 1328
+        },
+        "detail": "delta=1328",
+        "violations": [
+          {
+            "type": "delta",
+            "value": 1328
+          }
+        ]
+      },
+      "signal_escape": true,
+      "hop1_rip": {
+        "reachability": [
+          "TASK_START",
+          "BOUNDARY_CHECK",
+          "CONVERT_DONE",
+          "FINAL_ANSWER"
+        ],
+        "infection_point": "CONVERT_DONE",
+        "boundary_alert_steps": [
+          "currency_to_payment"
+        ],
+        "boundary_alert_point": "currency_to_payment",
+        "propagation_depth": 0,
+        "missing_steps": []
+      },
+      "hop2_rip": {
+        "reachability": [
+          "TASK_START",
+          "BOUNDARY_CHECK",
+          "CARD_VALIDATED",
+          "CHARGE_DONE",
+          "SAVE_DONE",
+          "FINAL_ANSWER"
+        ],
+        "infection_point": null,
+        "boundary_alert_steps": [
+          "currency_to_payment"
+        ],
+        "boundary_alert_point": "currency_to_payment",
+        "propagation_depth": 0,
+        "missing_steps": []
+      },
       "hop1_infection": "CONVERT_DONE",
       "hop2_infection": null,
       "hop2_steps": [
         "TASK_START",
+        "BOUNDARY_CHECK",
         "CARD_VALIDATED",
         "CHARGE_DONE",
         "SAVE_DONE",
@@ -42,14 +93,83 @@
         "PROD-017",
         "PROD-009"
       ],
+      "boundary_contract": {
+        "boundary": "catalog_to_recommendation",
+        "alert": true,
+        "status": "signal_escape",
+        "expected": [
+          "PROD-001"
+        ],
+        "observed": [
+          "HALLUCINATED-001"
+        ],
+        "difference": {
+          "missing": [
+            "PROD-001"
+          ],
+          "extra": [
+            "HALLUCINATED-001"
+          ]
+        },
+        "detail": "missing=['PROD-001'], extra=['HALLUCINATED-001']",
+        "violations": [
+          {
+            "type": "missing_items",
+            "items": [
+              "PROD-001"
+            ]
+          },
+          {
+            "type": "extra_items",
+            "items": [
+              "HALLUCINATED-001"
+            ]
+          }
+        ]
+      },
+      "signal_escape": true,
+      "hop1_rip": {
+        "reachability": [
+          "TASK_START",
+          "BOUNDARY_CHECK",
+          "CATALOG_DONE",
+          "FINAL_ANSWER"
+        ],
+        "infection_point": "CATALOG_DONE",
+        "boundary_alert_steps": [
+          "catalog_to_recommendation"
+        ],
+        "boundary_alert_point": "catalog_to_recommendation",
+        "propagation_depth": 0,
+        "missing_steps": []
+      },
+      "hop2_rip": {
+        "reachability": [
+          "TASK_START",
+          "BOUNDARY_CHECK",
+          "RECOMMEND_DONE",
+          "FINAL_ANSWER"
+        ],
+        "infection_point": null,
+        "propagation_depth": 0,
+        "missing_steps": []
+      },
       "hop1_infection": "CATALOG_DONE",
       "hop2_infection": null,
       "hop2_steps": [
         "TASK_START",
+        "BOUNDARY_CHECK",
         "RECOMMEND_DONE",
         "FINAL_ANSWER"
       ],
       "finding": "FM-2.2 phantom product ID propagates silently to recommender; no structural step loss at hop 2; garbage-in garbage-out"
     }
-  ]
+  ],
+  "summary": {
+    "total_chains": 2,
+    "boundary_alerts": 2,
+    "signal_escapes": 2,
+    "downstream_clean": 2,
+    "manual_review_candidates": 2
+  }
 }

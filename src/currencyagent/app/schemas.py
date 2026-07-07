@@ -8,6 +8,7 @@ class CurrencyRequest(BaseModel):
     to_currency: Optional[str] = "EUR"
     units: Optional[int] = 0
     nanos: Optional[int] = 0
+    handoff_contract: Optional[dict] = None
 
 
 class CurrencyResponse(BaseModel):

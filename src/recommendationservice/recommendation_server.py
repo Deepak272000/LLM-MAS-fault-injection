@@ -40,6 +40,31 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from logger import getJSONLogger
 logger = getJSONLogger('recommendationservice-server')
 
+try:
+  from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for standalone service container
+  def boundary_contract(name, expected, observed, **_kwargs):
+    return {
+      "boundary": name,
+      "alert": expected != observed,
+      "status": "signal_escape" if expected != observed else "clean",
+      "expected": expected,
+      "observed": observed,
+      "difference": None,
+      "detail": None,
+      "violations": [],
+    }
+
+def record_recommendation_boundary(input_product_ids, recommended_product_ids):
+  repeated_ids = [item for item in recommended_product_ids if item in set(input_product_ids)]
+  boundary = boundary_contract(
+    "recommendation_request_to_response",
+    [],
+    repeated_ids,
+    validators={"__list__": lambda value: all(isinstance(item, str) and item for item in value)},
+  )
+  logger.info("[BOUNDARY_CHECK] %s", boundary)
+
 def initStackdriverProfiling():
   project_id = None
   try:
@@ -79,6 +104,7 @@ class RecommendationService(demo_pb2_grpc.RecommendationServiceServicer):
         indices = random.sample(range(num_products), num_return)
         # fetch product ids from indices
         prod_list = [filtered_products[i] for i in indices]
+        record_recommendation_boundary(list(request.product_ids), prod_list)
         logger.info("[Recv ListRecommendations] product_ids={}".format(prod_list))
         # build and return response
         response = demo_pb2.ListRecommendationsResponse()

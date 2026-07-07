@@ -18,6 +18,7 @@ def generate_email(request: EmailAgentRequest):
         final_state = email_graph.invoke(
             {
                 "request": request.model_dump(),
+                "handoff_contract": request.handoff_contract,
                 "email_type": "",
                 "subject": "",
                 "body": "",

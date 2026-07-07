@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -32,6 +32,7 @@ class EmailAgentRequest(BaseModel):
     currency_code: str = "USD"
     shipping_address: AddressModel = AddressModel()
     email_type: str = "order_confirmation"
+    handoff_contract: Optional[Dict[str, Any]] = None
 
 
 class EmailAgentResponse(BaseModel):

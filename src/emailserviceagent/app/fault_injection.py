@@ -72,8 +72,11 @@ def rip_summary() -> dict:
     reached = [cp["step"] for cp in _global_lkw]
     missing = [s for s in EXPECTED_STEPS if s not in reached]
     infection = None
+    boundary_alert_steps = []
     for cp in _global_lkw:
         d = cp.get("data", {})
+        if cp["step"] == "BOUNDARY_CHECK" and d.get("alert"):
+            boundary_alert_steps.append(d.get("boundary", "BOUNDARY_CHECK"))
         if any([d.get("hallucinated"), d.get("recipient_swapped"), d.get("type_wrong"),
                 d.get("send_skipped"), d.get("double_send"), d.get("corrupted"),
                 d.get("wrong_customer"), d.get("premature_termination")]):
@@ -82,6 +85,8 @@ def rip_summary() -> dict:
     return {
         "reachability": reached,
         "infection_point": infection,
+        "boundary_alert_steps": boundary_alert_steps,
+        "boundary_alert_point": boundary_alert_steps[0] if boundary_alert_steps else None,
         "propagation_depth": len(missing),
         "missing_steps": missing,
     }

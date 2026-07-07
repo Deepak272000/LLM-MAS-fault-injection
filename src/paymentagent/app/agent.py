@@ -3,6 +3,19 @@ from app.repository import save_transaction
 from app.tools import charge_payment, CreditCardError
 import app.fault_injection as fi
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for isolated agent execution
+    def boundary_contract(name, expected, observed):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+        }
+
 logger = logging.getLogger("payment-agent")
 
 
@@ -17,6 +30,7 @@ class PaymentAgent:
         credit_card_cvv: int = 0,
         credit_card_expiration_year: int = 0,
         credit_card_expiration_month: int = 0,
+        handoff_contract: dict | None = None,
     ):
         logger.info(f"[PaymentAgent] Received query: {query}")
         lkw = fi.LKWCheckpoint()
@@ -28,6 +42,29 @@ class PaymentAgent:
             "card_last4": credit_card_number[-4:] if credit_card_number else "****",
             "fault_mode": fi.FAULT_MODE,
         })
+
+        if handoff_contract is not None:
+            boundary = boundary_contract(
+                handoff_contract.get("boundary", "upstream_handoff"),
+                handoff_contract.get("expected"),
+                {"currency_code": currency_code, "units": units, "nanos": nanos},
+                required_keys=["currency_code", "units", "nanos"],
+                validators={
+                    "units": lambda value: isinstance(value, int) and value >= 0,
+                    "nanos": lambda value: isinstance(value, int) and 0 <= value < 1_000_000_000,
+                    "currency_code": lambda value: isinstance(value, str) and len(value) == 3,
+                },
+            )
+            lkw.record("BOUNDARY_CHECK", {
+                "boundary": boundary["boundary"],
+                "alert": boundary["alert"],
+                "status": boundary["status"],
+                "expected": boundary["expected"],
+                "observed": boundary["observed"],
+                "difference": boundary["difference"],
+                "detail": boundary["detail"],
+                "violations": boundary["violations"],
+            })
 
         # FM_3_1: premature termination before any charge
         early = fi.maybe_premature_termination()

@@ -3,6 +3,21 @@ import importlib
 from app.grpc_client import CurrencyGrpcClient
 import app.fault_injection as fi
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for isolated agent execution
+    def boundary_contract(name, expected, observed, **_kwargs):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+            "detail": None,
+            "violations": [],
+        }
+
 logger = logging.getLogger(__name__)
 
 client = CurrencyGrpcClient()
@@ -11,7 +26,8 @@ client = CurrencyGrpcClient()
 class CurrencyAgent:
     def run(self, query: str, action: str = "get_supported_currencies",
             from_currency: str = "USD", units: int = 0,
-            nanos: int = 0, to_currency: str = "EUR"):
+            nanos: int = 0, to_currency: str = "EUR",
+            handoff_contract: dict | None = None):
 
         logger.info(f"CurrencyAgent.run called | action={action} | query='{query}'")
         lkw = fi.LKWCheckpoint()
@@ -66,6 +82,24 @@ class CurrencyAgent:
             data = fi.maybe_inject_stale_rate(data)
             # BL_CONVERSION_OVERFLOW: inject overflow
             data = fi.maybe_overflow_result(data)
+
+            if handoff_contract is not None:
+                boundary = boundary_contract(
+                    handoff_contract.get("boundary", "currency_to_payment"),
+                    handoff_contract.get("expected"),
+                    data.get("units"),
+                    validators={"__value__": lambda value: isinstance(value, (int, float)) and value >= 0},
+                )
+                lkw.record("BOUNDARY_CHECK", {
+                    "boundary": boundary["boundary"],
+                    "alert": boundary["alert"],
+                    "status": boundary["status"],
+                    "expected": boundary["expected"],
+                    "observed": boundary["observed"],
+                    "difference": boundary["difference"],
+                    "detail": boundary["detail"],
+                    "violations": boundary["violations"],
+                })
 
             lkw.record("CONVERT_DONE", {
                 "from_currency": from_currency,

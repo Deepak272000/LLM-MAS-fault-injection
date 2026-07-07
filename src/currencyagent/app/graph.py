@@ -13,6 +13,7 @@ class CurrencyState(TypedDict):
     to_currency: Optional[str]
     units: Optional[int]
     nanos: Optional[int]
+    handoff_contract: Optional[dict]
     route: str
     result: dict
     total_input_tokens: int
@@ -86,7 +87,8 @@ def run_agent(state: CurrencyState):
             from_currency=state.get("from_currency", "USD"),
             units=state.get("units", 0),
             nanos=state.get("nanos", 0),
-            to_currency=state.get("to_currency", "EUR")
+            to_currency=state.get("to_currency", "EUR"),
+            handoff_contract=state.get("handoff_contract")
         )
 
     # ADD THIS BLOCK HERE (before return)

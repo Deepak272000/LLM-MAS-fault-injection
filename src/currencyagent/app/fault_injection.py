@@ -64,8 +64,11 @@ class LKWCheckpoint:
         reached = [cp["step"] for cp in self.checkpoints]
         missing = [s for s in self.EXPECTED_STEPS if s not in reached]
         infection = None
+        boundary_alert_steps = []
         for cp in self.checkpoints:
             d = cp.get("data", {})
+            if cp["step"] == "BOUNDARY_CHECK" and d.get("alert"):
+                boundary_alert_steps.append(d.get("boundary", "BOUNDARY_CHECK"))
             if any([
                 d.get("hallucinated"), d.get("amount_tampered"),
                 d.get("currency_swapped"), d.get("rate_manipulated"),
@@ -77,6 +80,8 @@ class LKWCheckpoint:
         return {
             "reachability": reached,
             "infection_point": infection,
+            "boundary_alert_steps": boundary_alert_steps,
+            "boundary_alert_point": boundary_alert_steps[0] if boundary_alert_steps else None,
             "propagation_depth": len(missing),
             "missing_steps": missing,
         }

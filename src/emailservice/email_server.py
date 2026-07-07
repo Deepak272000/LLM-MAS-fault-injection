@@ -42,6 +42,38 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from logger import getJSONLogger
 logger = getJSONLogger('emailservice-server')
 
+try:
+  from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for standalone service container
+  def boundary_contract(name, expected, observed, **_kwargs):
+    return {
+      "boundary": name,
+      "alert": expected != observed,
+      "status": "signal_escape" if expected != observed else "clean",
+      "expected": expected,
+      "observed": observed,
+      "difference": None,
+      "detail": None,
+      "violations": [],
+    }
+
+def record_email_boundary(request):
+  observed = {
+    "email": getattr(request, "email", ""),
+    "order_id": getattr(getattr(request, "order", None), "order_id", ""),
+  }
+  boundary = boundary_contract(
+    "email_request_to_service",
+    observed,
+    observed,
+    required_keys=["email", "order_id"],
+    validators={
+      "email": lambda value: isinstance(value, str) and "@" in value,
+      "order_id": lambda value: isinstance(value, str),
+    },
+  )
+  logger.info("[BOUNDARY_CHECK] %s", boundary)
+
 # Loads confirmation email template from file
 env = Environment(
     loader=FileSystemLoader('templates'),
@@ -84,6 +116,7 @@ class EmailService(BaseEmailService):
     logger.info("Message sent: {}".format(response.rfc822_message_id))
 
   def SendOrderConfirmation(self, request, context):
+    record_email_boundary(request)
     email = request.email
     order = request.order
 
@@ -107,6 +140,7 @@ class EmailService(BaseEmailService):
 
 class DummyEmailService(BaseEmailService):
   def SendOrderConfirmation(self, request, context):
+    record_email_boundary(request)
     logger.info('A request to send order confirmation email to {} has been received.'.format(request.email))
     return demo_pb2.Empty()
 

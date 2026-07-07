@@ -7,6 +7,7 @@ from app.llm.qwen import get_qwen_llm
 class CatalogState(TypedDict):
     query: str
     product_ids: Optional[List[str]]
+    handoff_contract: Optional[dict]
     route: str
     result: dict
     total_input_tokens: int
@@ -80,19 +81,23 @@ Return only one label.
 
 def run_agent(state: CatalogState):
     if state["route"] == "get_product":
-        state["result"] = agent.run(query=state["query"], product_ids=state.get("product_ids"))
+        state["result"] = agent.run(
+            query=state["query"],
+            product_ids=state.get("product_ids"),
+            handoff_contract=state.get("handoff_contract"),
+        )
     elif state["route"] == "list_products":
-        state["result"] = {
-            "mode": "agent",
-            "action": "list_products",
-            "data": agent.run(query="list all products", product_ids=None)["data"]
-        }
+        state["result"] = agent.run(
+            query="list all products",
+            product_ids=None,
+            handoff_contract=state.get("handoff_contract"),
+        )
     else:
-        state["result"] = {
-            "mode": "agent",
-            "action": "search_products",
-            "data": agent.run(query=state["query"], product_ids=None)["data"]
-        }
+        state["result"] = agent.run(
+            query=state["query"],
+            product_ids=None,
+            handoff_contract=state.get("handoff_contract"),
+        )
 
     return state
 

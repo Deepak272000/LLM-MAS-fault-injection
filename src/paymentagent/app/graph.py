@@ -21,6 +21,7 @@ class PaymentState(TypedDict):
     total_input_tokens: int
     total_output_tokens: int
     total_llm_calls: int
+    handoff_contract: Optional[dict]
 
 agent = PaymentAgent()
 llm = get_llama_llm()
@@ -76,10 +77,9 @@ async def run_agent(state: PaymentState):
         credit_card_number=state.get("credit_card_number", ""),
         credit_card_cvv=state.get("credit_card_cvv", 0),
         credit_card_expiration_year=state.get("credit_card_expiration_year", 0),
-        credit_card_expiration_month=state.get("credit_card_expiration_month", 0)
+        credit_card_expiration_month=state.get("credit_card_expiration_month", 0),
+        handoff_contract=state.get("handoff_contract"),
     )
-
-    state["result"] = agent.run(...)
 
     state["result"]["total_input_tokens"] = state.get("total_input_tokens", 0)
     state["result"]["total_output_tokens"] = state.get("total_output_tokens", 0)

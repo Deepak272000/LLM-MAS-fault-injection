@@ -61,28 +61,31 @@ def is_valid_card(number: str):
 def charge_payment(request: dict):
     amount = request.get("amount", {})
     credit_card = request.get("credit_card", {})
+    bypass_validation = request.get("_bypass_validation", False)
 
     card_number = credit_card.get("credit_card_number", "")
 
-    # ---- validate card ----
-    if not is_valid_card(card_number):
-        raise InvalidCreditCard()
+    # FM_1_2: skip all validation if bypass flag is set
+    if not bypass_validation:
+        # ---- validate card ----
+        if not is_valid_card(card_number):
+            raise InvalidCreditCard()
 
-    card_type = get_card_type(card_number)
+        card_type = get_card_type(card_number)
 
-    # ---- only VISA / MasterCard ----
-    if card_type not in ["visa", "mastercard"]:
-        raise UnacceptedCreditCard(card_type)
+        # ---- only VISA / MasterCard ----
+        if card_type not in ["visa", "mastercard"]:
+            raise UnacceptedCreditCard(card_type)
 
-    # ---- expiry check (same formula as baseline) ----
-    current_month = datetime.now().month
-    current_year = datetime.now().year
+        # ---- expiry check (same formula as baseline) ----
+        current_month = datetime.now().month
+        current_year = datetime.now().year
 
-    year = credit_card.get("credit_card_expiration_year", 0)
-    month = credit_card.get("credit_card_expiration_month", 0)
+        year = credit_card.get("credit_card_expiration_year", 0)
+        month = credit_card.get("credit_card_expiration_month", 0)
 
-    if (current_year * 12 + current_month) > (year * 12 + month):
-        raise ExpiredCreditCard(card_number.replace("-", ""), month, year)
+        if (current_year * 12 + current_month) > (year * 12 + month):
+            raise ExpiredCreditCard(card_number.replace("-", ""), month, year)
 
     # ---- SUCCESS ----
     return {

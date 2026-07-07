@@ -24,6 +24,7 @@ def query_currency(request: CurrencyRequest):
             "to_currency": request.to_currency,
             "units": request.units,
             "nanos": request.nanos,
+            "handoff_contract": request.handoff_contract,
             "result": {}
         })
         logger.info(f"Query completed | action={result['result']['action']}")

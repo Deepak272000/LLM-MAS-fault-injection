@@ -19,6 +19,7 @@ class RecommendationState(TypedDict):
     total_input_tokens: int
     total_output_tokens: int
     total_llm_calls: int                          # final response (possibly LLM-enriched)
+    handoff_contract: dict | None
 
 
 # ---------------------------------------------------------------------------
@@ -110,12 +111,21 @@ def run_agent(state: RecommendationState) -> RecommendationState:
     """Dispatch to the appropriate agent method based on route."""
     user_id = state["user_id"]
     product_ids = state["product_ids"]
+    handoff_contract = state.get("handoff_contract")
 
     if state["route"] == "explain_recommendations":
-        raw = agent.explain_recommendations(user_id=user_id, product_ids=product_ids)
+        raw = agent.explain_recommendations(
+            user_id=user_id,
+            product_ids=product_ids,
+            handoff_contract=handoff_contract,
+        )
         state["raw_result"] = raw
     else:
-        raw = agent.get_recommendations(user_id=user_id, product_ids=product_ids)
+        raw = agent.get_recommendations(
+            user_id=user_id,
+            product_ids=product_ids,
+            handoff_contract=handoff_contract,
+        )
         state["raw_result"] = raw
         state["result"] = raw   # no LLM enrichment needed
 

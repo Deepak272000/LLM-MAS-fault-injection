@@ -35,10 +35,11 @@ import re
 import time
 import requests
 from datetime import datetime, timezone
+from typing import Optional
 
 try:
-    from langsmith import traceable
-    from langsmith.wrappers import wrap_openai  # noqa: F401 — available but optional
+    from langsmith import traceable  # type: ignore[import-not-found]
+    from langsmith.wrappers import wrap_openai  # noqa: F401 — available but optional  # type: ignore[import-not-found]
     LANGSMITH_ENABLED = bool(os.getenv("LANGSMITH_API_KEY"))
 except ImportError:
     LANGSMITH_ENABLED = False
@@ -659,3 +660,29 @@ class ShippingOrchestrator:
 
         log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
         return {"tracking_id": tracking_id, "_lkw": ckpt.to_dict()}
+
+
+# Compatibility shim: forward shippingservice.orchestrator imports to the
+# separated shippingagent/app implementation used by the service entrypoint.
+import importlib.util as _importlib_util
+from pathlib import Path as _Path
+import sys as _sys
+
+_SRC_ROOT = _Path(__file__).resolve().parent.parent
+_AGENT_APP = _SRC_ROOT / "shippingagent" / "app"
+for _path in (str(_SRC_ROOT), str(_AGENT_APP)):
+    if _path not in _sys.path:
+        _sys.path.insert(0, _path)
+
+_spec = _importlib_util.spec_from_file_location(
+    "_shippingagent_app_orchestrator",
+    _AGENT_APP / "orchestrator.py",
+)
+if _spec is None or _spec.loader is None:
+    raise ImportError("Unable to load shippingagent/app/orchestrator.py")
+
+_shippingagent_app_orchestrator = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(_shippingagent_app_orchestrator)
+
+ShippingOrchestrator = _shippingagent_app_orchestrator.ShippingOrchestrator
+LKWCheckpoint = _shippingagent_app_orchestrator.LKWCheckpoint

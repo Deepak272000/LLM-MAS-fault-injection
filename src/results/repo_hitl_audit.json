@@ -1,0 +1,445 @@
+{
+  "generated_at": "2026-07-07T03:15:04.519446+00:00",
+  "sources": {
+    "root_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\hitl_classification_report.json",
+    "shipping_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\shippingservice\\hitl_classification_report.json",
+    "boundary_summary": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\boundary_detection_summary.json",
+    "cross_agent": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\cross_agent_propagation.json",
+    "stability": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\stability_summary.json"
+  },
+  "hitl_reports": {
+    "root_hitl": {
+      "present": true,
+      "kind": "agent_fault_results",
+      "total_scenarios": 54,
+      "hitl_required": 48,
+      "summary": {
+        "tier_1": 8,
+        "tier_2": 34,
+        "tier_3": 6,
+        "baseline": 6
+      }
+    },
+    "shipping_hitl": {
+      "present": true,
+      "kind": "scenario_classification",
+      "total_scenarios": 10,
+      "hitl_required": 5,
+      "summary": {
+        "tier_1_silent": 5,
+        "tier_2_flagged": 2,
+        "tier_3_structural": 3
+      }
+    },
+    "boundary_summary": {
+      "present": true,
+      "kind": "boundary_detection_summary",
+      "total_scenarios": 4,
+      "hitl_required": 2,
+      "summary": {
+        "boundary_alerts": 4,
+        "signal_escapes": 4,
+        "fault_induced": 2,
+        "infra_failures": 1
+      }
+    },
+    "cross_agent": {
+      "present": true,
+      "kind": "cross_agent_propagation",
+      "total_scenarios": 2,
+      "hitl_required": 2,
+      "summary": {
+        "boundary_alerts": 2,
+        "signal_escapes": 2,
+        "downstream_clean": 2
+      }
+    }
+  },
+  "stability": {
+    "present": true,
+    "agent_count": 6,
+    "runs_per_agent": 3,
+    "stable_pass_total": 6,
+    "stable_fault_total": 48,
+    "unstable_total": 0,
+    "mean_stability_rate": 100.0
+  },
+  "coverage": {
+    "groups": [
+      {
+        "group": "adserviceagent",
+        "python_files": 15,
+        "boundary_files": 4,
+        "analysis_files": 2,
+        "boundary_marker_total": 15,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 3,
+          "boundary_contract": 3,
+          "handoff_contract": 9,
+          "failure_class": 0,
+          "rip_summary": 3
+        },
+        "files": [
+          "adserviceagent/app/fault_injection.py",
+          "adserviceagent/app/graph.py",
+          "adserviceagent/app/router.py",
+          "adserviceagent/app/schemas.py",
+          "adserviceagent/test_fault_injection.py"
+        ]
+      },
+      {
+        "group": "boundary_detection_runner.py",
+        "python_files": 1,
+        "boundary_files": 1,
+        "analysis_files": 1,
+        "boundary_marker_total": 2,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 2,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 10,
+          "rip_summary": 6
+        },
+        "files": [
+          "boundary_detection_runner.py"
+        ]
+      },
+      {
+        "group": "boundary_validation.py",
+        "python_files": 1,
+        "boundary_files": 1,
+        "analysis_files": 0,
+        "boundary_marker_total": 2,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 2,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": [
+          "boundary_validation.py"
+        ]
+      },
+      {
+        "group": "cross_agent_propagation.py",
+        "python_files": 1,
+        "boundary_files": 1,
+        "analysis_files": 1,
+        "boundary_marker_total": 13,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 2,
+          "boundary_contract": 7,
+          "handoff_contract": 4,
+          "failure_class": 0,
+          "rip_summary": 2
+        },
+        "files": [
+          "cross_agent_propagation.py"
+        ]
+      },
+      {
+        "group": "currencyagent",
+        "python_files": 14,
+        "boundary_files": 5,
+        "analysis_files": 2,
+        "boundary_marker_total": 16,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 3,
+          "boundary_contract": 3,
+          "handoff_contract": 10,
+          "failure_class": 0,
+          "rip_summary": 5
+        },
+        "files": [
+          "currencyagent/app/agent.py",
+          "currencyagent/app/fault_injection.py",
+          "currencyagent/app/graph.py",
+          "currencyagent/app/router.py",
+          "currencyagent/app/schemas.py"
+        ]
+      },
+      {
+        "group": "emailservice",
+        "python_files": 5,
+        "boundary_files": 1,
+        "analysis_files": 0,
+        "boundary_marker_total": 4,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": [
+          "emailservice/email_server.py"
+        ]
+      },
+      {
+        "group": "emailserviceagent",
+        "python_files": 11,
+        "boundary_files": 4,
+        "analysis_files": 2,
+        "boundary_marker_total": 15,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 3,
+          "boundary_contract": 3,
+          "handoff_contract": 9,
+          "failure_class": 0,
+          "rip_summary": 3
+        },
+        "files": [
+          "emailserviceagent/app/fault_injection.py",
+          "emailserviceagent/app/graph.py",
+          "emailserviceagent/app/router.py",
+          "emailserviceagent/app/schemas.py",
+          "emailserviceagent/test_fault_injection.py"
+        ]
+      },
+      {
+        "group": "hitl_detector.py",
+        "python_files": 1,
+        "boundary_files": 0,
+        "analysis_files": 0,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": []
+      },
+      {
+        "group": "loadgenerator",
+        "python_files": 1,
+        "boundary_files": 0,
+        "analysis_files": 0,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": []
+      },
+      {
+        "group": "paymentagent",
+        "python_files": 17,
+        "boundary_files": 2,
+        "analysis_files": 2,
+        "boundary_marker_total": 11,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 7,
+          "failure_class": 0,
+          "rip_summary": 4
+        },
+        "files": [
+          "paymentagent/app/agent.py",
+          "paymentagent/app/fault_injection.py",
+          "paymentagent/app/graph.py"
+        ]
+      },
+      {
+        "group": "productcatalogagent",
+        "python_files": 15,
+        "boundary_files": 5,
+        "analysis_files": 2,
+        "boundary_marker_total": 20,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 3,
+          "boundary_contract": 3,
+          "handoff_contract": 14,
+          "failure_class": 0,
+          "rip_summary": 2
+        },
+        "files": [
+          "productcatalogagent/app/agent.py",
+          "productcatalogagent/app/fault_injection.py",
+          "productcatalogagent/app/graph.py",
+          "productcatalogagent/app/router.py",
+          "productcatalogagent/app/schemas.py",
+          "productcatalogagent/test_fault_injection.py"
+        ]
+      },
+      {
+        "group": "productcatalogservice",
+        "python_files": 4,
+        "boundary_files": 1,
+        "analysis_files": 0,
+        "boundary_marker_total": 4,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": [
+          "productcatalogservice/server.py"
+        ]
+      },
+      {
+        "group": "recommendationagent",
+        "python_files": 15,
+        "boundary_files": 2,
+        "analysis_files": 2,
+        "boundary_marker_total": 21,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 17,
+          "failure_class": 0,
+          "rip_summary": 2
+        },
+        "files": [
+          "recommendationagent/app/agent.py",
+          "recommendationagent/app/fault_injection.py",
+          "recommendationagent/app/graph.py",
+          "recommendationagent/test_fault_injection.py"
+        ]
+      },
+      {
+        "group": "recommendationservice",
+        "python_files": 5,
+        "boundary_files": 1,
+        "analysis_files": 0,
+        "boundary_marker_total": 4,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": [
+          "recommendationservice/recommendation_server.py"
+        ]
+      },
+      {
+        "group": "repo_hitl_audit.py",
+        "python_files": 1,
+        "boundary_files": 1,
+        "analysis_files": 1,
+        "boundary_marker_total": 11,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 4,
+          "boundary_contract": 4,
+          "handoff_contract": 3,
+          "failure_class": 4,
+          "rip_summary": 2
+        },
+        "files": [
+          "repo_hitl_audit.py"
+        ]
+      },
+      {
+        "group": "shippingagent",
+        "python_files": 10,
+        "boundary_files": 1,
+        "analysis_files": 1,
+        "boundary_marker_total": 9,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 4,
+          "boundary_contract": 5,
+          "handoff_contract": 0,
+          "failure_class": 10,
+          "rip_summary": 3
+        },
+        "files": [
+          "shippingagent/app/orchestrator.py"
+        ]
+      },
+      {
+        "group": "shippingservice",
+        "python_files": 19,
+        "boundary_files": 0,
+        "analysis_files": 6,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 13
+        },
+        "files": [
+          "shippingservice/langfuse_prepare_lkw.py",
+          "shippingservice/lkw_rip_runner.py",
+          "shippingservice/orchestrator.py",
+          "shippingservice/phoenix_visualize_lkw.py",
+          "shippingservice/trulens_dashboard_lkw.py",
+          "shippingservice/trulens_prepare_lkw.py"
+        ]
+      },
+      {
+        "group": "shoppingassistantservice",
+        "python_files": 1,
+        "boundary_files": 1,
+        "analysis_files": 0,
+        "boundary_marker_total": 4,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 1,
+          "boundary_contract": 3,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": [
+          "shoppingassistantservice/shoppingassistantservice.py"
+        ]
+      },
+      {
+        "group": "stability_analysis.py",
+        "python_files": 1,
+        "boundary_files": 0,
+        "analysis_files": 0,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": []
+      }
+    ],
+    "boundary_proxy_groups": {
+      "shippingservice": "shippingagent"
+    },
+    "groups_with_boundary_flags": [
+      "adserviceagent",
+      "boundary_detection_runner.py",
+      "boundary_validation.py",
+      "cross_agent_propagation.py",
+      "currencyagent",
+      "emailservice",
+      "emailserviceagent",
+      "paymentagent",
+      "productcatalogagent",
+      "productcatalogservice",
+      "recommendationagent",
+      "recommendationservice",
+      "repo_hitl_audit.py",
+      "shippingagent",
+      "shippingservice",
+      "shoppingassistantservice"
+    ],
+    "groups_without_boundary_flags": []
+  },
+  "recommendations": {
+    "boundary_flag_targets": [],
+    "priority": [
+      "Add boundary_contract / BOUNDARY_CHECK to remaining agent handoffs.",
+      "Keep shippingservice as a shim and extend coverage in shippingagent/app.",
+      "Use repo_hitl_audit.json as the current snapshot for HITL readiness."
+    ]
+  }
+}

@@ -35,10 +35,11 @@ import re
 import time
 import requests
 from datetime import datetime, timezone
+from typing import Optional
 
 try:
-    from langsmith import traceable
-    from langsmith.wrappers import wrap_openai  # noqa: F401 — available but optional
+    from langsmith import traceable  # type: ignore[import-not-found]
+    from langsmith.wrappers import wrap_openai  # noqa: F401 — available but optional  # type: ignore[import-not-found]
     LANGSMITH_ENABLED = bool(os.getenv("LANGSMITH_API_KEY"))
 except ImportError:
     LANGSMITH_ENABLED = False
@@ -54,6 +55,32 @@ from agents.tracking_agent import TrackingAgent
 from repository import save_quote, save_shipment
 from config import LLAMA_BASE_URL, LLAMA_MODEL
 import fault_injection as fi
+
+try:
+    from boundary_validation import boundary_contract, classify_failure
+except ImportError:  # pragma: no cover - fallback for isolated runs
+    def boundary_contract(name, expected, observed, **_kwargs):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+            "detail": None,
+            "violations": [],
+        }
+    def classify_failure(exc, fault_mode=None):
+        if exc is None:
+            return "ok"
+        message = str(exc).lower()
+        if "read timeout" in message or "timeout" in message:
+            return "infra_timeout"
+        if "connection" in message or "cannot reach" in message:
+            return "infra_connection"
+        if fault_mode and fault_mode != "NONE":
+            return "fault_induced"
+        return "unknown_failure"
 
 
 # ── LKW (Last Known Well) Checkpoint Logger ───────────────────────────────────
@@ -119,9 +146,12 @@ class LKWCheckpoint:
         reached   = [c["step"] for c in self.checkpoints]
         missing   = self.missing_steps()
         infected  = None
+        boundary_alert_steps = []
 
         for c in self.checkpoints:
             d = c.get("data", {})
+            if c["step"] == "BOUNDARY_CHECK" and d.get("alert"):
+                boundary_alert_steps.append(d.get("boundary", "BOUNDARY_CHECK"))
             # Detect infection signals
             if c["step"] == "QUOTE_DONE":
                 cost = d.get("cost_usd", 1.0)
@@ -133,36 +163,37 @@ class LKWCheckpoint:
                     or (cost == 0.0 and math.copysign(1.0, cost) < 0)
                     or d.get("item_count_inflated", False)
                 )
-                if cost_infected:
+                if cost_infected and infected is None:
                     infected = c["step"]
-                    break
             if c["step"] == "CARRIER_DONE" and d.get("carrier") in (None, "SpeedyShip", "PremiumExpress"):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "CARRIER_DONE" and d.get("ignored_downstream_quote"):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "CARRIER_DONE" and d.get("forced_vendor"):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "TRACKING_DONE" and "PREMATURE" in str(d.get("tracking_id", "")):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "TRACKING_DONE" and "COMPLIANCE-FAILED" in str(d.get("tracking_id", "")):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "ESCALATION_CHECK" and d.get("escalation_required"):
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
             if c["step"] == "SAVE_DONE" and not d.get("saved", True) and d.get("reason") != "benchmark_mode":
-                infected = c["step"]
-                break
+                if infected is None:
+                    infected = c["step"]
 
         propagation = len(missing)  # each missing step = one level of propagation
 
         return {
             "reachability": reached,
             "infection_point": infected,
+            "boundary_alert_steps": boundary_alert_steps,
+            "boundary_alert_point": boundary_alert_steps[0] if boundary_alert_steps else None,
             "propagation_depth": propagation,
             "missing_steps": missing,
         }
@@ -361,10 +392,22 @@ class ShippingOrchestrator:
                 selection_cost,
                 int(tool_input.get("item_count", 1)),
             )
+            selection_boundary = boundary_contract(
+                "quote_to_carrier_selection",
+                {"quoted_cost_usd": quoted_cost, "used_cost_usd": quoted_cost},
+                {
+                    "quoted_cost_usd": quoted_cost,
+                    "used_cost_usd": selection_cost,
+                    "ignored_downstream_quote": fi.active_fault() == "FM_2_5",
+                },
+            )
             if fi.active_fault() == "FM_2_5" and isinstance(result, dict):
                 result["ignored_downstream_quote"] = True
                 result["quoted_cost_usd"] = quoted_cost
                 result["used_cost_usd"] = selection_cost
+                result["boundary_check"] = selection_boundary
+            if isinstance(result, dict):
+                result["boundary_check"] = selection_boundary
             # FM-2.2: replace real result with hallucinated carrier data
             result = fi.maybe_hallucinate_carrier(result)
             # BL-VENDOR_NEGOTIATION: force expensive fallback carrier
@@ -473,9 +516,10 @@ class ShippingOrchestrator:
             if not capture_partial_trace:
                 raise
             log.exception("GetQuote failed during benchmark capture")
-            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc)})
+            failure_class = classify_failure(exc, fi.active_fault())
+            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc), "failure_class": failure_class})
             log.info("[LKW] get_quote trace: %s", json.dumps(ckpt.to_dict()))
-            return {"error": str(exc), "_lkw": ckpt.to_dict()}
+            return {"error": str(exc), "failure_class": failure_class, "_lkw": ckpt.to_dict()}
 
         try:
             data     = json.loads(raw)
@@ -534,10 +578,11 @@ class ShippingOrchestrator:
             if not capture_partial_trace:
                 raise
             log.exception("ShipOrder failed during benchmark capture")
-            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc)})
+            failure_class = classify_failure(exc, fi.active_fault())
+            ckpt.record("FINAL_ANSWER", {"raw": "", "error": str(exc), "failure_class": failure_class})
             ckpt.record("SAVE_DONE", {"saved": False, "reason": "benchmark_mode"})
             log.info("[LKW] ship_order trace: %s", json.dumps(ckpt.to_dict()))
-            return {"error": str(exc), "_lkw": ckpt.to_dict()}
+            return {"error": str(exc), "failure_class": failure_class, "_lkw": ckpt.to_dict()}
 
         try:
             data = json.loads(raw)
@@ -617,6 +662,18 @@ class ShippingOrchestrator:
         if fi.is_active(fi.BL_INVENTORY_MISMATCH):
             quote_data["item_count_inflated"] = True
         ckpt.record("QUOTE_DONE", quote_data)
+        quote_boundary = boundary_contract(
+            "quote_to_carrier",
+            {"cost_usd": cost_usd},
+            quote_data,
+            validators={
+                "__value__": lambda value: isinstance(value, dict)
+                and isinstance(value.get("cost_usd"), (int, float))
+                and value.get("cost_usd", -1) >= 0
+                and not value.get("item_count_inflated", False),
+            },
+        )
+        ckpt.record("BOUNDARY_CHECK", quote_boundary)
         carrier_data = {"carrier": carrier, "service_level": service_level}
         if fi.is_active(fi.BL_VENDOR_NEGOTIATION) or carrier == "PremiumExpress":
             carrier_data["forced_vendor"] = True
@@ -631,6 +688,29 @@ class ShippingOrchestrator:
             carrier_data["injected_service"] = "overnight"
             carrier_data["silent_absorption"] = carrier != "PremiumExpress"
         ckpt.record("CARRIER_DONE", carrier_data)
+        carrier_boundary = boundary_contract(
+            "carrier_to_tracking",
+            {"carrier": carrier, "service_level": service_level},
+            carrier_data,
+            required_keys=["carrier", "service_level"],
+            validators={
+                "carrier": lambda value: isinstance(value, str) and value in {
+                    "FedEx",
+                    "UPS",
+                    "USPS",
+                    "DHL",
+                    "PremiumExpress",
+                },
+                "service_level": lambda value: isinstance(value, str) and value in {
+                    "standard",
+                    "ground",
+                    "overnight",
+                    "2-day",
+                    "express",
+                },
+            },
+        )
+        ckpt.record("BOUNDARY_CHECK", carrier_boundary)
         ckpt.record("TRACKING_DONE", {"tracking_id": tracking_id})
 
         # BL-CUSTOMER_ESCALATION: flag high-risk orders before saving

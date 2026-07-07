@@ -2,11 +2,25 @@ import importlib
 from app.grpc_client import RecommendationGrpcClient
 import app.fault_injection as fi
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for isolated agent execution
+    def boundary_contract(name, expected, observed):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+        }
+
 client = RecommendationGrpcClient()
 
 
 class RecommendationAgent:
-    def _fetch(self, user_id: str, product_ids: list[str], action: str) -> dict:
+    def _fetch(self, user_id: str, product_ids: list[str], action: str,
+               handoff_contract: dict | None = None) -> dict:
         fi.clear_lkw()
         fi.record_checkpoint("TASK_START", {
             "user_id": user_id,
@@ -14,6 +28,30 @@ class RecommendationAgent:
             "action": action,
             "fault_mode": fi.FAULT_MODE,
         })
+
+        if handoff_contract is not None:
+            boundary = boundary_contract(
+                handoff_contract.get("boundary", "upstream_handoff"),
+                handoff_contract.get("expected"),
+                product_ids,
+                required_keys=[],
+                validators={
+                    "__value__": lambda value: isinstance(value, list) and all(
+                        isinstance(item, str) and item.startswith("PROD-")
+                        for item in value
+                    ),
+                },
+            )
+            fi.record_checkpoint("BOUNDARY_CHECK", {
+                "boundary": boundary["boundary"],
+                "alert": boundary["alert"],
+                "status": boundary["status"],
+                "expected": boundary["expected"],
+                "observed": boundary["observed"],
+                "difference": boundary["difference"],
+                "detail": boundary["detail"],
+                "violations": boundary["violations"],
+            })
 
         # FM_3_1: premature termination
         early = fi.maybe_premature_termination()
@@ -64,14 +102,16 @@ class RecommendationAgent:
             "lkw": fi.get_lkw(),
         }
 
-    def get_recommendations(self, user_id: str, product_ids: list[str]) -> dict:
+    def get_recommendations(self, user_id: str, product_ids: list[str],
+                            handoff_contract: dict | None = None) -> dict:
         """Fetch recommended product IDs for a user given their current product context."""
         action = "get_recommendations"
         if fi.FAULT_MODE == "FM_1_2":
             action = "explain_recommendations"
-        return self._fetch(user_id, product_ids, action)
+        return self._fetch(user_id, product_ids, action, handoff_contract=handoff_contract)
 
-    def explain_recommendations(self, user_id: str, product_ids: list[str]) -> dict:
+    def explain_recommendations(self, user_id: str, product_ids: list[str],
+                                handoff_contract: dict | None = None) -> dict:
         """
         Fetch recommendations and return raw data so the LLM node can
         generate a human-readable explanation downstream.
@@ -79,4 +119,4 @@ class RecommendationAgent:
         action = "explain_recommendations"
         if fi.FAULT_MODE == "FM_1_2":
             action = "get_recommendations"
-        return self._fetch(user_id, product_ids, action)
+        return self._fetch(user_id, product_ids, action, handoff_contract=handoff_contract)

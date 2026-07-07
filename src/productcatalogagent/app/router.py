@@ -16,6 +16,7 @@ def query_catalog(request: ProductCatalogRequest):
     result = graph.invoke({
         "query": request.query,
         "product_ids": request.product_ids,
+        "handoff_contract": request.handoff_contract,
         "result": {}
     })
     return result["result"]

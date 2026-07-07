@@ -24,6 +24,40 @@ from flask import Flask, request
 
 from langchain_google_alloydb_pg import AlloyDBEngine, AlloyDBVectorStore
 
+try:
+    from boundary_validation import boundary_contract
+except ImportError:  # pragma: no cover - fallback for standalone service container
+    def boundary_contract(name, expected, observed, **_kwargs):
+        return {
+            "boundary": name,
+            "alert": expected != observed,
+            "status": "signal_escape" if expected != observed else "clean",
+            "expected": expected,
+            "observed": observed,
+            "difference": None,
+            "detail": None,
+            "violations": [],
+        }
+
+def record_assistant_boundary(prompt: str, image_url: str, response_text: str) -> None:
+    observed = {
+        "prompt": prompt,
+        "image_present": bool(image_url),
+        "response_present": bool(response_text),
+    }
+    boundary = boundary_contract(
+        "shopping_assistant_request_to_response",
+        observed,
+        observed,
+        required_keys=["prompt", "image_present", "response_present"],
+        validators={
+            "prompt": lambda value: isinstance(value, str) and bool(value.strip()),
+            "image_present": lambda value: value is True,
+            "response_present": lambda value: value is True,
+        },
+    )
+    print(f"[BOUNDARY_CHECK] {boundary}")
+
 PROJECT_ID = os.environ["PROJECT_ID"]
 REGION = os.environ["REGION"]
 ALLOYDB_DATABASE_NAME = os.environ["ALLOYDB_DATABASE_NAME"]
@@ -109,6 +143,7 @@ def create_app():
             design_prompt
         )
 
+        record_assistant_boundary(prompt, request.json['image'], design_response.content)
         data = {'content': design_response.content}
         return data
 
