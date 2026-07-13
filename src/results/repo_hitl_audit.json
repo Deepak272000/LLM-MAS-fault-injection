@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-13T23:07:11.946148+00:00",
+  "generated_at": "2026-07-13T23:10:45.981040+00:00",
   "sources": {
     "root_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\hitl_classification_report.json",
     "shipping_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\shippingservice\\hitl_classification_report.json",
@@ -467,7 +467,7 @@
   "recommendations": {
     "boundary_flag_targets": [],
     "priority": [
-      "Add boundary_contract / BOUNDARY_CHECK to remaining agent handoffs.",
+      "No remaining agent/service boundary-flag targets in the current audit.",
       "Keep shippingservice as a shim and extend coverage in shippingagent/app.",
       "Use repo_hitl_audit.json as the current snapshot for HITL readiness."
     ]

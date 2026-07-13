@@ -210,6 +210,11 @@ def build_report() -> dict:
     }
     stability_report = summarize_stability(load_json(REPORT_SOURCES["stability"]))
     coverage = scan_python_coverage()
+    boundary_targets = coverage["groups_without_boundary_flags"]
+    if boundary_targets:
+        boundary_priority = "Add boundary_contract / BOUNDARY_CHECK to remaining agent handoffs."
+    else:
+        boundary_priority = "No remaining agent/service boundary-flag targets in the current audit."
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -218,9 +223,9 @@ def build_report() -> dict:
         "stability": stability_report,
         "coverage": coverage,
         "recommendations": {
-            "boundary_flag_targets": coverage["groups_without_boundary_flags"],
+            "boundary_flag_targets": boundary_targets,
             "priority": [
-                "Add boundary_contract / BOUNDARY_CHECK to remaining agent handoffs.",
+                boundary_priority,
                 "Keep shippingservice as a shim and extend coverage in shippingagent/app.",
                 "Use repo_hitl_audit.json as the current snapshot for HITL readiness."
             ],
