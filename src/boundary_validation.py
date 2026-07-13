@@ -2,7 +2,34 @@
 
 from __future__ import annotations
 
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
+
+
+def _events_file() -> Path | None:
+    configured = os.getenv("BOUNDARY_EVENTS_FILE")
+    enabled = os.getenv("BOUNDARY_EVENTS_ENABLED", "0").lower() in {"1", "true", "yes"}
+    if not configured and not enabled:
+        return None
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parent / "results" / "boundary_events.jsonl"
+
+
+def _record_boundary_event(result: dict) -> None:
+    path = _events_file()
+    if path is None:
+        return
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        **result,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, default=str) + "\n")
 
 
 def boundary_contract(
@@ -25,7 +52,7 @@ def boundary_contract(
     strict_checks = bool(required_keys or validators or not allow_extra_keys)
 
     if expected == observed and not strict_checks:
-        return {
+        result = {
             "boundary": name,
             "alert": False,
             "status": "clean",
@@ -34,6 +61,8 @@ def boundary_contract(
             "difference": None,
             "violations": [],
         }
+        _record_boundary_event(result)
+        return result
 
     if isinstance(expected, list) and isinstance(observed, list):
         missing = [item for item in expected if item not in observed]
@@ -130,7 +159,7 @@ def boundary_contract(
     if not violations and expected == observed and strict_checks:
         detail = "strict validation passed"
 
-    return {
+    result = {
         "boundary": name,
         "alert": bool(violations) or expected != observed,
         "status": "signal_escape" if (violations or expected != observed) else "clean",
@@ -140,6 +169,8 @@ def boundary_contract(
         "detail": detail,
         "violations": violations,
     }
+    _record_boundary_event(result)
+    return result
 
 
 def summarize_boundary_results(chains: list[dict]) -> dict:

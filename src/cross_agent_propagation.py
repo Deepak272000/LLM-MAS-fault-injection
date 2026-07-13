@@ -177,7 +177,10 @@ async def run_payment_agent(units: int, currency_code: str, expected_units: int,
             result = await agent_mod.PaymentAgent().run(
                 query="charge payment",
                 currency_code=currency_code, units=units, nanos=0, **MOCK_CARD,
-                handoff_contract={"boundary": "currency_to_payment", "expected": expected_units},
+                handoff_contract={
+                    "boundary": "currency_to_payment",
+                    "expected": {"currency_code": currency_code, "units": expected_units, "nanos": 0},
+                },
             )
         except Exception as _exc:
             print(f"  [WARN] PaymentAgent.run() raised {type(_exc).__name__}: {_exc}")

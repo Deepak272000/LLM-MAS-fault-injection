@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-07T03:15:04.519446+00:00",
+  "generated_at": "2026-07-13T23:07:11.946148+00:00",
   "sources": {
     "root_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\results\\hitl_classification_report.json",
     "shipping_hitl": "E:\\Summer ai Agent Project\\LLM-MAS\\src\\shippingservice\\hitl_classification_report.json",
@@ -86,6 +86,21 @@
           "adserviceagent/app/schemas.py",
           "adserviceagent/test_fault_injection.py"
         ]
+      },
+      {
+        "group": "boundary_dashboard.py",
+        "python_files": 1,
+        "boundary_files": 0,
+        "analysis_files": 0,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": []
       },
       {
         "group": "boundary_detection_runner.py",
@@ -199,6 +214,21 @@
       },
       {
         "group": "hitl_detector.py",
+        "python_files": 1,
+        "boundary_files": 0,
+        "analysis_files": 0,
+        "boundary_marker_total": 0,
+        "marker_counts": {
+          "BOUNDARY_CHECK": 0,
+          "boundary_contract": 0,
+          "handoff_contract": 0,
+          "failure_class": 0,
+          "rip_summary": 0
+        },
+        "files": []
+      },
+      {
+        "group": "live_boundary_demo.py",
         "python_files": 1,
         "boundary_files": 0,
         "analysis_files": 0,
